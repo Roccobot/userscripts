@@ -303,7 +303,7 @@ in `ABP/RoccobotFilters.txt`. È una duplicazione **dichiarata**, non una diment
 ⚠️ Chi tocca uno dei due **aggiorni anche l'altro**, o divergeranno in silenzio: qui la fonte
 unica non è possibile, perché i due meccanismi non si leggono a vicenda. Il criterio con cui
 è stato scelto il selettore (l'URL invece delle classi, che in Qwant sono hashate; e il
-livello del contenitore misurato risalendo il DOM) vive in [`ABP/CLAUDE.md`](../ABP/CLAUDE.md),
+livello del contenitore misurato risalendo il DOM) vive nel `CLAUDE.md` del repo `Roccobot/ABP`,
 per non scriverlo due volte.
 
 ⚠️⚠️ **E DALLA `2.18.0` I BERSAGLI SONO DUE PER OGNI VIA, PIÙ UN RAMO IN JS.** Il selettore
@@ -334,7 +334,7 @@ titolo, l'immagine e un tasto, e vive nei due posti di sempre: lo userscript e l
 
 - **L'appiglio sono i `data-testid` dei suoi pezzi**, che Qwant tiene stabili mentre le classi
   della card sono hashate: il criterio, i due selettori e la forma dichiarata dal componente
-  vivono in [`ABP/CLAUDE.md`](../ABP/CLAUDE.md), per non scriverli due volte.
+  vivono nel `CLAUDE.md` del repo `Roccobot/ABP`, per non scriverli due volte.
 - **La terza via è `nascondiAnnuncioInserzionista()`, e MISURA invece di sapere**: sale dal
   titolo finché l'antenato porta soltanto il testo dei pezzi marcati, e si ferma appena ne
   aggiunge dell'altro. È il freno dello smart banner detto con un conto invece che con un
