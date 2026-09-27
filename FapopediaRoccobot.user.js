@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Fapopedia Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.2.0
+// @version      1.2.1
 // @description  Adds a button to fapopedia.net that downloads every image of a gallery at full resolution, packed into one ZIP. Originals are derived from the thumbnail URLs (the 't_' prefix is dropped) and fetched with GM_xmlhttpRequest; the ZIP comes from a small built-in writer (store method, no dependency: JSZip stalled while compressing inside the sandbox). Nothing is uploaded: downloads only.
 // @author       Rocco Casadei, a.k.a. Roccobot
-// @icon         https://raw.githubusercontent.com/Roccobot/roccobot.github.io/refs/heads/master/userscripts/Roccobot.png
+// @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://fapopedia.net/*
 // @match        https://www.fapopedia.net/*
 // @run-at       document-idle

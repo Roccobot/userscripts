@@ -8,7 +8,7 @@ GitHub Pages, si installano (e si aggiornano) direttamente dal loro URL.
 > (`Roccobot.png`, in questa cartella), dichiarata nell'intestazione con:
 >
 > ```js
-> // @icon https://raw.githubusercontent.com/Roccobot/roccobot.github.io/refs/heads/master/userscripts/Roccobot.png
+> // @icon https://roccobot.github.io/userscripts/Roccobot.png
 > ```
 >
 > Vale anche per ogni script nuovo, salvo richiesta diversa.

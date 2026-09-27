@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         LotRWiki Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.0.3
+// @version      1.0.4
 // @description  Lightens Fandom's LotR wiki (lotr.fandom.com): drops the huge background image and keeps it from loading at all, then hides the ads, the right rail, the featured video and Fandom's oversized global footer. Wiki content is left alone (article, infobox, contents, categories, images). CSS only, no network request.
 // @author       Rocco Casadei, a.k.a. Roccobot
-// @icon         https://raw.githubusercontent.com/Roccobot/roccobot.github.io/refs/heads/master/userscripts/Roccobot.png
+// @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://lotr.fandom.com/*
 // @run-at       document-start
 // @noframes
