@@ -18,15 +18,17 @@
   in autonomia: attendere la risposta prima di creare il file. (Vale per i nuovi
   script; per gli aggiornamenti di script esistenti si mantengono nome e titolo.)
 - **Icona di DEFAULT per ogni userscript (istruzione dell'utente, 2026-07-26):
-  sempre la stessa, `userscripts/Roccobot.png`.** Va messa nell'intestazione di
+  sempre la stessa, `Roccobot.png` alla radice di questo repo.** Va messa nell'intestazione di
   ogni script, nuovo o esistente, senza chiedere:
 
   ```js
-  // @icon https://raw.githubusercontent.com/Roccobot/roccobot.github.io/refs/heads/master/userscripts/Roccobot.png
+  // @icon https://roccobot.github.io/userscripts/Roccobot.png
   ```
 
-  Si usa il raw di GitHub (non il dominio Pages) perché è il riferimento già
-  adottato da tutti gli script. Un'icona diversa solo se l'utente la chiede.
+  Si usa l'indirizzo di Pages dal 2026-09-27: fino a quel giorno era il raw di GitHub della
+  cartella `userscripts/` dell'hub, che col trasloco del progetto nel suo repo risponde 404, e
+  tutti gli script hanno avuto un bump di patch per portare l'indirizzo nuovo. Un'icona diversa
+  solo se l'utente la chiede.
 - **Intestazione: `@author` e lingua** (applicazione delle regole universali, sezione
   'Codice e artefatti generati' di `Roccobot.md`, dal 2026-07-29):
   - `@author` è sempre **`Rocco Casadei, a.k.a. Roccobot`**, mai il solo 'Roccobot'

@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         ENF Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.5.0
+// @version      1.5.1
 // @description  Adds a Download button to enf-cmnf.cc, enfhub.com and xhamster.com that saves the page's videos. On enf-cmnf.cc photo posts a second button packs every full-size image of the post into a single ZIP, built in the script itself with no external library: it takes the widest srcset candidate, retries the un-resized WordPress original (the -800x600 suffix hides a bigger file), skips avatars, icons and thumbnails from the sidebars, downloads a few images at a time and lists the failed ones once at the end. On xhamster it also forces the English site (no language subdomain) and picks the highest resolution on its own, asking only when the same resolution comes in more than one codec. Covers every player the two sites use: direct MP4 (<source> or <video src>), self-hosted HLS on cdn.enf-cmnf.cc, and enfhub's HLS (master.m3u8, read from the player or derived from the poster); HLS is fetched segment by segment and joined into one .ts file. On forum threads it opens a picker that lists the videos in page order with a thumbnail, the post number and the author, lets you tick several of them and downloads them one after the other, writing the post number into each filename. Progress on the button, second click cancels.
 // @author       Rocco Casadei, a.k.a. Roccobot
-// @icon         https://raw.githubusercontent.com/Roccobot/roccobot.github.io/refs/heads/master/userscripts/Roccobot.png
+// @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://enf-cmnf.cc/*
 // @match        https://www.enf-cmnf.cc/*
 // @match        https://enfhub.com/*
