@@ -153,7 +153,7 @@ Tutto-in-uno per `nsfwalbum.com` (unisce e sostituisce *NSFWAlbum Enhancer* +
 *NSFWGallery*):
 
 - **Pagina foto (`/photo/<id>`):** rende l'immagine vera cliccabile in modo
-  naturale: «apri immagine»/«salva immagine» agiscono sul **file reale su
+  naturale: 'apri immagine'/'salva immagine' agiscono sul **file reale su
   imx.to**, non sull'esca. La foto vera è in `<img id="zoom">` ma spesso è
   **nascosta** (`class="hide"`) mentre uno script di protezione (`hl.js`)
   sovrappone un `<svg>` **vuoto** grande quanto la foto che ruba il tasto destro
@@ -163,7 +163,7 @@ Tutto-in-uno per `nsfwalbum.com` (unisce e sostituisce *NSFWAlbum Enhancer* +
   la lente d'ingrandimento (`.magnify-lens`). *(Quando l'immagine manca davvero
   il sito serve un JPEG placeholder da `/missed.php`: lì non c'è nulla da
   recuperare, non è un'esca.)*
-- **Pagina album (`/album/<id>`):** pulsante flottante **«⬇️ Download set (ZIP)»**
+- **Pagina album (`/album/<id>`):** pulsante flottante **'⬇️ Download set (ZIP)'**
   che scarica **tutte** le immagini del set a **piena risoluzione** in un unico
   **ZIP**, nominato **`[studio] - [modella] - [titolo].zip`** (ricavato dalla
   pagina). Full-res da imx.to (thumb `//image.imx.to/u/t/...` → file
@@ -325,7 +325,7 @@ Su `pornhub.com` fa quattro cose:
      identificativi sono quelli della libreria Google Identity Services e non cambiano col
      sito. L'invito e il tasto AI si beccano per **testo**, perché le loro classi sono
      generate e cambiano senza preavviso mentre la scritta resta.
-   - Il riquadro dell'invito si trova salendo dal nodo che porta la scritta fino al primo
+   - Il riquadro dell'invito si trova salendo dal nodo che contiene la scritta fino al primo
      antenato **posizionato**, con un tetto di quattro livelli: più su c'è il player, e
      nasconderlo spegnerebbe il video.
    - Sul tasto AI si richiede un testo **corto** che cominci per 'AI': senza il tetto di
@@ -389,8 +389,8 @@ peso**, e soprattutto un comportamento di visualizzazione controllato:
       comportamento predefinito non cambia.
     - Nel codice le due misure sono distinte: `fitDisplay()` è l'adattamento **chiesto**
       (può ingrandire), `fitSenzaCrescere()` quello dei riadattamenti **automatici**.
-    - ⚠️ Da qui la regola su `isFit`: significa «sto mostrando l'adattato **che il clic
-      darebbe**», non «sono arrivato qui adattando», e va **ricalcolato** a ogni cambio di
+    - ⚠️ Da qui la regola su `isFit`: significa 'sto mostrando l'adattato **che il clic
+      darebbe**', non 'sono arrivato qui adattando', e va **ricalcolato** a ogni cambio di
       scala, opzione o vista (`scalaEAdattata()`). Assumendolo vero dopo un riadattamento
       automatico a 1:1, il clic si credeva già sull'adattato e il riempimento diventava
       irraggiungibile.
@@ -910,7 +910,7 @@ Che cosa prende, e a quale risoluzione:
 - le immagini del **corpo del post** (`.entry-content`), nell'ordine in cui si
   leggono, più quelle **collegate** da un link diretto a un file immagine;
 - di ogni immagine la versione **più grande** disponibile: il candidato più
-  largo dello `srcset`, e se l'indirizzo porta il suffisso WordPress `-800x600`
+  largo dello `srcset`, e se l'indirizzo ha il suffisso WordPress `-800x600`
   si chiede prima il file **senza suffisso**, che è l'originale. Misurato sul
   post campione: **196055 byte contro 84701**, cioè il suffisso nascondeva un
   file più che doppio. Se l'originale non c'è, si ripiega su quello che la

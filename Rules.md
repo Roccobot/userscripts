@@ -27,7 +27,7 @@
 
   Si usa l'indirizzo di Pages dal 2026-09-27: fino a quel giorno era il raw di GitHub della
   cartella `userscripts/` dell'hub, che col trasloco del progetto nel suo repo risponde 404, e
-  tutti gli script hanno avuto un bump di patch per portare l'indirizzo nuovo. Un'icona diversa
+  tutti gli script hanno avuto un bump di patch per includere l'indirizzo nuovo. Un'icona diversa
   solo se l'utente la chiede.
 - **Intestazione: `@author` e lingua** (applicazione delle regole universali, sezione
   'Codice e artefatti generati' di `Roccobot.md`, dal 2026-07-29):
@@ -95,8 +95,8 @@ qui sopra, che **resta in vigore per gli altri sei script**: non è caduta, ha u
 - **Niente terza via e niente lingua parziale**: 'auto' guarda `navigator.language` e sceglie
   italiano se comincia per `it`, inglese in ogni altro caso.
 - ⚠️ **Il punto finale segue il RUOLO della stringa, non l'orecchio** (rilievo dell'utente,
-  2026-08-17: 'qui manca un punto finale, occhio alla coerenza'). Lo portano i **tooltip**, le
-  **descrizioni** e i **messaggi di errore**; non lo portano gli **elementi di interfaccia**:
+  2026-08-17: 'qui manca un punto finale, occhio alla coerenza'). Lo hanno i **tooltip**, le
+  **descrizioni** e i **messaggi di errore**; non lo hanno gli **elementi di interfaccia**:
   etichette, pulsanti, voci di menu, avvisi a scomparsa, `aria-label` e le righe di **stato**,
   che sono frammenti e non frasi ('Niente da ripulire', 'Al massimo 480 DPI per questa
   immagine'). ⚠️ Gli errori sono entrati nella famiglia col punto **dopo**, riscrivendoli
@@ -125,7 +125,7 @@ qui sopra, che **resta in vigore per gli altri sei script**: non è caduta, ha u
 - ⚠️ **Il grassetto nelle descrizioni si fa col marcatore `*X*`**, non con `innerHTML`: la
   stringa si spezza sugli asterischi e i pezzi dispari diventano `<strong>`. Serve per i tasti
   citati (`*A*`, `*I*`, `*N*`), che l'utente vuole in evidenza (2026-08-17). ⚠️ Nei **tooltip
-  non si può fare**, perché un attributo `title` non porta markup: là i tasti restano nudi,
+  non si può fare**, perché un attributo `title` non contiene markup: là i tasti restano nudi,
   e non è una svista.
 - ⚠️⚠️ **Casella NEGATA**: quando l'etichetta dice il contrario della chiave ('Inverti
   scorrimento' contro `dv-wheel-up-in`), la casella mostra e scrive il valore **rovesciato**, e
@@ -326,7 +326,7 @@ saperlo. Sono tre vie per una cosa sola, e ognuna copre quello che le altre non 
 - ⚠️ **Il ramo JS non è ridondanza del CSS**, e il criterio che li distingue è preciso: il CSS
   arriva senza sfarfallio ma vuole `:has()` con un combinatore iniziale; il ramo JS gira dal
   `MutationObserver`, quindi prende anche un banner rimesso in scena dopo, e la profondità la
-  ricava salendo finché l'antenato porta solo il testo del banner.
+  ricava salendo finché l'antenato contiene solo il testo del banner.
 - **La controprova è in tre corse**: con tutto acceso il banner è a 0; togliendo la regola CSS
   resta 0 (lavora il ramo JS); togliendo anche la chiamata al ramo JS torna a **67**. Senza
   quella terza corsa le prime due non misurerebbero niente.
@@ -343,15 +343,15 @@ titolo, l'immagine e un tasto, e vive nei due posti di sempre: lo userscript e l
   della card sono hashate: il criterio, i due selettori e la forma dichiarata dal componente
   vivono nel `CLAUDE.md` del repo `Roccobot/ABP`, per non scriverli due volte.
 - **La terza via è `nascondiAnnuncioInserzionista()`, e MISURA invece di sapere**: sale dal
-  titolo finché l'antenato porta soltanto il testo dei pezzi marcati, e si ferma appena ne
+  titolo finché l'antenato contiene soltanto il testo dei pezzi marcati, e si ferma appena ne
   aggiunge dell'altro. È il freno dello smart banner detto con un conto invece che con un
-  confronto: un antenato che comprende anche un risultato porta decine di caratteri in più,
+  confronto: un antenato che comprende anche un risultato contiene decine di caratteri in più,
   quindi non viene mai nascosto.
 - **La controprova è in quattro corse**, su una pagina di prova che riproduce l'albero
   ricostruito dal componente: con tutto acceso le due forme della card valgono **0**; col solo
   CSS **0**; col solo ramo JS **0**; senza niente **213** pixel l'una. Le due vie bastano
   quindi ognuna da sola, ed è quello che le quattro corse servono a dire.
-  - ⚠️ **La prova porta una terza forma, con la card e un risultato nello STESSO
+  - ⚠️ **La prova include una terza forma, con la card e un risultato nello STESSO
     contenitore**: là il risultato resta alto **86** pixel in tutte e quattro le corse, ed è la
     misura che dice che la salita non si porta via la lista.
 - ⚠️⚠️ **MA L'ANNUNCIO VERO NON SI È VISTO, e va detto invece di darlo per provato**: dal
@@ -412,7 +412,7 @@ nome del file. Copre `enf-cmnf.cc`, `enfhub.com` e `xhamster.com`.
   utente **registrato**; l'mp4 del CDN invece risponde **302 verso `ahcdn.com` e poi 206
   `video/mp4`**, perfino senza nessuna intestazione.
   - ⚠️ **La firma legata all'IP non è un problema, ed era il mio argomento sbagliato**: il
-    token porta l'indirizzo di chi ha aperto la pagina, che è esattamente il browser dove lo
+    token contiene l'indirizzo di chi ha aperto la pagina, che è esattamente il browser dove lo
     script gira. Da un'altra macchina darebbe 403, ma quel caso non esiste.
   - **Lezione di metodo**: la 1.3.0 preferiva il link del sito per un motivo plausibile ('è la
     via che la pagina offre, quindi la più stabile'), scritto **senza provarlo**. Bastava una
@@ -539,4 +539,4 @@ l'ha in mano**.
     vecchio ora dà 404**, e se un giorno ricompare in un appunto o in un segnalibro, quello
     è il motivo.
 - ⚠️ **Non è uno userscript**, quindi non ha `@version` propria né bump SemVer: il numero
-  che porta in testa è quello **dello script che rispecchia**, e si muove con lui.
+  che mostra in testa è quello **dello script che rispecchia**, e si muove con lui.
