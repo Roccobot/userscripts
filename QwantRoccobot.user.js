@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Qwant Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      2.20.0
+// @version      2.20.1
 // @description  Declutters Qwant and opens image results on the original file. Home page: only the logo and a bare search field (no tagline, no placeholder, no search button, nothing below; Enter searches). Home page and results page: the official logo instead of event doodles; no left sidebar, footer, promo cards, options/filters button or ads (in-line data-testid adResult, advertiser cards with their vendor badge, image and call to action, and right column); fixed search parameters per tab; the Filters button shown on image search; no image preview strip on web search; and, behind an experimental flag, result links rewritten to skip the fdn.qwant.com tracking redirect. Image search: a click opens the original file, taken from the React state already in the page or else from the thumbnail URL, which matters now that Qwant serves Bing thumbnails that cannot be reversed; when neither works, the click is left untouched. That module makes no network request and runs only on the Images tab, because its global listeners on web search used to trip Qwant's anti-bot (403).
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -63,6 +63,14 @@
     else setTimeout(riprova, 0);
   }
 
+  // ── Verifica anti-bot (DataDome) in pagina ────────────────────────────
+  // Mentre c'è, lo script non naviga e non tocca la pagina: un replace la interrompe a
+  // metà, la pagina nuova viene verificata da capo e la verifica gira in tondo; e la
+  // pulizia non deve poter nascondere il riquadro della verifica né il suo iframe.
+  function sfidaInCorso() {
+    return !!document.querySelector('[id^="ddChallengeContainer"],iframe[src*="captcha-delivery.com"]');
+  }
+
   // ═══════════════════════════════════════════════════════════════════════
   //  MODULO 0 -- Parametri di ricerca fissi e forzati (Web / Immagini)
   // ═══════════════════════════════════════════════════════════════════════
@@ -88,11 +96,7 @@
       nsp.set('q', q);
       return u.origin + u.pathname + '?' + nsp.toString();
     }
-    // Mai navigare mentre in pagina c'è la verifica anti-bot (DataDome): un replace la
-    // interrompe a metà, la pagina nuova viene verificata da capo e la verifica gira in tondo.
-    function sfidaInCorso() {
-      return !!document.querySelector('[id^="ddChallengeContainer"],iframe[src*="captcha-delivery.com"]');
-    }
+    // Mai navigare mentre in pagina c'è la verifica anti-bot: vedi sfidaInCorso().
     // Guardia anti-loop persistente: ogni URL di destinazione si forza al massimo una volta
     // per sessione. La guardia a tempo (2 secondi) non bastava: scaduta, si poteva rinavigare.
     function giaForzato(t) {
@@ -161,32 +165,6 @@
     if (HOME_SENZA_SCROLL) regole.push(
       'html:has([data-testid="home"]),html:has([data-testid="home"]) body{overflow:hidden!important}'
     );
-    if (HOME_ESSENZIALE) regole.push(
-      // Home ridotta a logo + campo. Tutto è ancorato al contenitore data-testid="home", che
-      // Qwant mette SOLO sulla home: la pagina dei risultati non ne è toccata. Le classi sono
-      // hashate, quindi i bersagli si descrivono con la loro relazione col modulo di ricerca
-      // (data-testid="mainSearchBar"), mai col nome della classe. Misurato sulla home viva il
-      // 2026-10-09: main contiene la testata (tasto impostazioni), la sezione con logo, payoff e
-      // modulo, e il blocco 'Always Qwant'; su telefono, sotto il campo, le 'Scorciatoie
-      // sponsorizzate'; accanto a data-testid="home" ci sono il toast dell'estensione e il footer.
-      // 1. Fratelli della home (toast dell'estensione, footer, ...): via tutti.
-      'div:has(> [data-testid="home"]) > :not([data-testid="home"]){display:none!important}',
-      // 2. A ogni livello fra la home e il modulo resta solo il ramo del modulo, quello del
-      //    logo e quello dei suggerimenti che compaiono mentre si scrive: spariscono la testata
-      //    (impostazioni su desktop, menu su telefono), le 'Scorciatoie sponsorizzate' sotto
-      //    il campo (su telefono) e il blocco 'Always Qwant'. img[data-roccobot] è il doodle
-      //    già sostituito col logo, che può non avere più il data-testid.
-      '[data-testid="home"] :has(> * [data-testid="mainSearchBar"]) > ' +
-        ':not(:has([data-testid="mainSearchBar"],[data-testid="logoHero"],img[data-roccobot],[data-testid="search-suggestions"]))' +
-        ':not([data-testid="mainSearchBar"],[data-testid="logoHero"],img[data-roccobot]){display:none!important}',
-      // 3. Il payoff sotto il logo ('Il motore di ricerca che non sa niente di te') è l'h1.
-      '[data-testid="home"] h1{display:none!important}',
-      // 4. La lente (il tasto di invio a destra del campo). Invio continua a cercare: il
-      //    modulo resta intero, e l'invio con la tastiera non ha bisogno del tasto visibile.
-      '[data-testid="home"] [data-testid="mainSearchBar"] button[type="submit"]{display:none!important}',
-      // 5. Il suggerimento 'Cerca' trasparente subito, prima che il JS tolga l'attributo.
-      '[data-testid="home"] [data-testid="mainSearchBar"] input::placeholder{color:transparent!important}'
-    );
     if (NASCONDI_PROMO) regole.push(
       '[data-testid="heroTiles"]{display:none!important}',
       '[data-testid^="downloadApp"]{display:none!important}',
@@ -235,6 +213,39 @@
       // la tab Immagini della navbar è un altro elemento (imagesNavItem) e non viene toccata.
       'html:not(.qr-tab-images) [data-testid="sectionImages"]{display:none!important}'
     );
+    // Le regole della home essenziale, in uno <style> a parte (vedi homeEssenziale()).
+    const stileHome = document.createElement('style');
+    stileHome.textContent = [
+      // Home ridotta a logo + campo. Tutto è ancorato al contenitore data-testid="home", che
+      // Qwant mette SOLO sulla home: la pagina dei risultati non ne è toccata. Queste regole
+      // NON entrano nello <style> generale: vivono in uno <style> a parte, che il JS mette in
+      // pagina solo quando la home c'è e non c'è una verifica anti-bot, e toglie altrimenti
+      // (vedi homeEssenziale()). Così i loro :has() non pesano sulle altre pagine, e non
+      // possono mai nascondere il riquadro della verifica. Le classi sono
+      // hashate, quindi i bersagli si descrivono con la loro relazione col modulo di ricerca
+      // (data-testid="mainSearchBar"), mai col nome della classe. Misurato sulla home viva il
+      // 2026-10-09: main contiene la testata (tasto impostazioni), la sezione con logo, payoff e
+      // modulo, e il blocco 'Always Qwant'; su telefono, sotto il campo, le 'Scorciatoie
+      // sponsorizzate'; accanto a data-testid="home" ci sono il toast dell'estensione e il footer.
+      // 1. Fratelli della home (toast dell'estensione, footer, ...): via tutti.
+      'div:has(> [data-testid="home"]) > :not([data-testid="home"]){display:none!important}',
+      // 2. A ogni livello fra la home e il modulo resta solo il ramo del modulo, quello del
+      //    logo e quello dei suggerimenti che compaiono mentre si scrive: spariscono la testata
+      //    (impostazioni su desktop, menu su telefono), le 'Scorciatoie sponsorizzate' sotto
+      //    il campo (su telefono) e il blocco 'Always Qwant'. img[data-roccobot] è il doodle
+      //    già sostituito col logo, che può non avere più il data-testid.
+      '[data-testid="home"] :has(> * [data-testid="mainSearchBar"]) > ' +
+        ':not(:has([data-testid="mainSearchBar"],[data-testid="logoHero"],img[data-roccobot],[data-testid="search-suggestions"]))' +
+        ':not([data-testid="mainSearchBar"],[data-testid="logoHero"],img[data-roccobot]){display:none!important}',
+      // 3. Il payoff sotto il logo ('Il motore di ricerca che non sa niente di te') è l'h1.
+      '[data-testid="home"] h1{display:none!important}',
+      // 4. La lente (il tasto di invio a destra del campo). Invio continua a cercare: il
+      //    modulo resta intero, e l'invio con la tastiera non ha bisogno del tasto visibile.
+      '[data-testid="home"] [data-testid="mainSearchBar"] button[type="submit"]{display:none!important}',
+      // 5. Il suggerimento 'Cerca' trasparente subito, prima che il JS tolga l'attributo.
+      '[data-testid="home"] [data-testid="mainSearchBar"] input::placeholder{color:transparent!important}'
+    ].join('\n');
+
     if (regole.length) {
       const style = document.createElement('style');
       style.textContent = regole.join('\n');
@@ -402,27 +413,44 @@
       }
     }
 
-    // Home essenziale: il campo senza il suggerimento 'Cerca'. Si toglie l'attributo, non solo
-    // il colore, così non lo legge nemmeno chi naviga a voce; l'etichetta aria-label resta.
-    // Solo sulla home (percorso '/', nessuna q, contenitore data-testid="home" in pagina).
-    function campoSenzaSuggerimento() {
-      if (!HOME_ESSENZIALE || location.pathname !== '/') return;
-      try { if (new URLSearchParams(location.search).get('q')) return; } catch (e) { return; }
+    // Home essenziale: lo <style> della home entra solo sulla home (percorso '/', nessuna q,
+    // contenitore data-testid="home" in pagina) e senza verifica anti-bot; in ogni altro caso
+    // esce. Sulla home il campo perde anche il suggerimento 'Cerca': si toglie l'attributo, non
+    // solo il colore, così non lo legge nemmeno chi naviga a voce; l'etichetta aria-label resta.
+    function suHome() {
+      if (location.pathname !== '/') return false;
+      try { if (new URLSearchParams(location.search).get('q')) return false; } catch (e) { return false; }
+      return !!document.querySelector('[data-testid="home"]');
+    }
+    function homeEssenziale(sfida) {
+      const attiva = HOME_ESSENZIALE && !sfida && suHome();
+      if (!attiva) { if (stileHome.isConnected) stileHome.remove(); return; }
+      if (!stileHome.isConnected) (document.head || document.documentElement).appendChild(stileHome);
       for (const campo of document.querySelectorAll('[data-testid="home"] [data-testid="mainSearchBar"] input[name="q"][placeholder]')) {
         campo.removeAttribute('placeholder');
       }
     }
 
-    function applica() { aggiornaClasseTab(); campoSenzaSuggerimento(); sistemaDoodle(); nascondiPromo(); nascondiSmartBanner(); nascondiBannerEstensione(); nascondiAdsSidebar(); nascondiAnnuncioInserzionista(); }
+    let osservatore = null;
+    function applica() {
+      // Con la verifica anti-bot in pagina non si tocca niente: si toglie solo lo <style>
+      // della home, che è nostro.
+      const sfida = sfidaInCorso();
+      homeEssenziale(sfida);
+      if (!sfida) { aggiornaClasseTab(); sistemaDoodle(); nascondiPromo(); nascondiSmartBanner(); nascondiBannerEstensione(); nascondiAdsSidebar(); nascondiAnnuncioInserzionista(); }
+      // Le mutazioni appena fatte da applica() (lo <style> aggiunto o tolto, un logo
+      // sostituito) sono nostre: si scartano, così l'osservatore non reagisce a se stesso.
+      if (osservatore) osservatore.takeRecords();
+    }
 
     // La home è una SPA: doodle e card compaiono dopo il primo render → si osserva.
     function avvio() {
       applica();
-      // attributeFilter 'placeholder': se React rimette il suggerimento sul campo esistente,
-      // senza aggiungere nodi, la sola osservazione dei figli non lo vedrebbe.
-      new MutationObserver(applica).observe(document.documentElement, {
-        subtree: true, childList: true, attributes: true, attributeFilter: ['placeholder']
-      });
+      // Solo i figli, come prima della 2.20.0: niente osservazione degli attributi. Se React
+      // rimettesse il suggerimento 'Cerca' senza aggiungere nodi, lo nasconde comunque la
+      // regola CSS del placeholder trasparente.
+      osservatore = new MutationObserver(applica);
+      osservatore.observe(document.documentElement, { subtree: true, childList: true });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', avvio);
     else avvio();
