@@ -28,9 +28,13 @@ Uno script unico per Qwant, con due funzioni:
    promozionali** (tile, "Follow Soccer", banner "scarica l'app", promo
    estensione e la card "Estensione Qwant / Aggiungi a Chrome") e le **card
    pubblicitarie nella colonna a destra** della SERP (es. annunci Booking.com),
-   **preservando il riquadro "Notizie"**. In home restano **solo logo e barra
-   di ricerca, senza scorrimento verticale**; nella SERP restano i risultati e
-   le notizie.
+   **preservando il riquadro "Notizie"**. In home restano **solo il logo e il
+   campo di ricerca, senza scorrimento verticale** (dalla 2.20.0): niente payoff
+   sotto il logo, niente suggerimento "Cerca" nel campo, niente lente a destra,
+   niente menu e impostazioni in alto, e sotto il campo nulla (né le
+   "Scorciatoie sponsorizzate" del telefono, né il blocco "Always Qwant"). Si
+   cerca con Invio, e i suggerimenti che compaiono mentre si scrive restano.
+   Nella SERP restano i risultati e le notizie.
    Fra le promozioni c'è anche la **barra "Qwant Search / Usa l'app subito!"**
    che da telefono compare in cima a ogni pagina: viene tolta da tre vie
    indipendenti (due selettori CSS e un ramo in JavaScript che misura quanto
@@ -64,6 +68,7 @@ const NASCONDI_SIDEBAR    = true;  // barra a sinistra + toggle menu
 const NASCONDI_OPZIONI    = true;  // SERP: tasto "Filtri"/opzioni e relativi menu
 const NASCONDI_FOOTER     = true;  // piè di pagina (intero <footer>)
 const HOME_SENZA_SCROLL   = true;  // home: niente scroll verticale (solo logo + ricerca)
+const HOME_ESSENZIALE     = true;  // home: solo logo e campo (niente payoff, 'Cerca', lente, né altro sotto)
 const NASCONDI_PROMO      = true;  // tile, card promozionali, banner app, promo estensione
 const NASCONDI_ADS_SIDEBAR = true; // SERP: pubblicità nella colonna a destra (preserva "Notizie")
 const SOSTITUISCI_DOODLE  = true;  // doodle/veste evento → logo Qwant ufficiale
