@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Qwant Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      2.19.1
+// @version      2.19.2
 // @description  Declutters Qwant and opens image results on the original file. Home page and results page: the official logo instead of event doodles; no left sidebar, footer, promo cards, options/filters button or ads (in-line data-testid adResult, advertiser cards with their vendor badge, image and call to action, and right column); fixed search parameters per tab; the Filters button shown on image search; no image preview strip on web search; and, behind an experimental flag, result links rewritten to skip the fdn.qwant.com tracking redirect. Image search: a click opens the original file, taken from the React state already in the page or else from the thumbnail URL, which matters now that Qwant serves Bing thumbnails that cannot be reversed; when neither works, the click is left untouched. That module makes no network request and runs only on the Images tab, because its global listeners on web search used to trip Qwant's anti-bot (403).
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -81,24 +81,36 @@
     }
     function target(u, q, tab) {
       const v = tab === 'images' ? PARAM_IMG : PARAM_WEB;
-      const nsp = new URLSearchParams();
+      // Si parte dai parametri che ci sono già: quelli che lo script non conosce restano.
+      const nsp = new URLSearchParams(u.search);
       for (const k in v) nsp.set(k, v[k]);
       nsp.set('q', q);
       return u.origin + u.pathname + '?' + nsp.toString();
     }
+    // Mai navigare mentre in pagina c'è la verifica anti-bot (DataDome): un replace la
+    // interrompe a metà, la pagina nuova viene verificata da capo e la verifica gira in tondo.
+    function sfidaInCorso() {
+      return !!document.querySelector('[id^="ddChallengeContainer"],iframe[src*="captcha-delivery.com"]');
+    }
+    // Guardia anti-loop persistente: ogni URL di destinazione si forza al massimo una volta
+    // per sessione. La guardia a tempo (2 secondi) non bastava: scaduta, si poteva rinavigare.
+    function giaForzato(t) {
+      try {
+        if (sessionStorage.getItem('qr-fp:' + t)) return true;
+        sessionStorage.setItem('qr-fp:' + t, '1');
+      } catch (e) { /* no storage */ }
+      return false;
+    }
     // A ogni CARICAMENTO/REFRESH: se l'URL non è ai parametri di default, li ripristina.
     // Così il refresh riporta sempre ai default; le modifiche via Filtri valgono finché
     // non si ricarica. Anti-loop a tempo: non riforza a raffica (se Qwant rialterasse i
-    // parametri dopo il replace).
+    // parametri dopo il replace): vedi giaForzato().
     (function alCaricamento() {
       let u; try { u = new URL(location.href); } catch (e) { return; }
       const q = u.searchParams.get('q');
-      if (!q || conforme(u, tabDi(u))) return;
-      let ts = 0; try { ts = +sessionStorage.getItem('qr-fp-ts') || 0; } catch (e) { /* no storage */ }
-      if (Date.now() - ts < 2000) return;
-      try { sessionStorage.setItem('qr-fp-ts', String(Date.now())); } catch (e) { /* no storage */ }
+      if (!q || conforme(u, tabDi(u)) || sfidaInCorso()) return;
       const t = target(u, q, tabDi(u));
-      if (t !== location.href) location.replace(t);
+      if (t !== location.href && !giaForzato(t)) location.replace(t);
     })();
     // NAVIGAZIONE SPA: forza i default solo su CAMBIO TAB o NUOVA RICERCA (tab|query cambia);
     // sugli aggiustamenti via Filtri (stessa tab+query) lascia le scelte dell'utente.
@@ -112,8 +124,11 @@
       const cur = q ? (tabDi(u) + '|' + q) : '';
       if (q && cur !== prev) {                      // cambio tab / nuova ricerca -> forza i default
         prev = cur;
+        // Valori già giusti (Qwant li riscrive solo in un altro ordine): niente reload, che
+        // raddoppierebbe la richiesta dei risultati e insospettirebbe l'anti-bot.
+        if (conforme(u, tabDi(u)) || sfidaInCorso()) return;
         const t = target(u, q, tabDi(u));
-        if (t !== location.href) location.replace(t);
+        if (t !== location.href && !giaForzato(t)) location.replace(t);
       } else { prev = cur; }                         // stessa tab+query = aggiustamento Filtri -> lascia
     }, 500);
   })();
@@ -308,9 +323,20 @@
       // dall'annuncio: Qwant scrive accanto alla card una parola sola ('Sponsorizzato',
       // 'Gesponsert'), e il risultato di ricerca più corto ne porta molti di più.
       const TESTO_LIBERO = 32;
+      // Confine invalicabile: l'app e i contenitori dei risultati non si nascondono mai, né
+      // ciò che li contiene. Mentre i risultati non sono ancora arrivati quei contenitori sono
+      // vuoti e passerebbero il conto del testo; nascosti lì, i risultati che arrivano dopo
+      // resterebbero nascosti (pagina bianca), perché il titolo marcato non si rivaluta più.
+      const CONFINE = '#root,main,#main-content,[data-testid="containerWeb"],[data-testid="sectionWeb"]';
       function soloAnnuncio(el) {
+        if (el.matches(CONFINE) || el.querySelector(CONFINE)) return false;
         let marcato = '';
-        for (const pezzo of el.querySelectorAll(PEZZO)) marcato += pezzo.textContent || '';
+        for (const pezzo of el.querySelectorAll(PEZZO)) {
+          // Un pezzo dentro un altro pezzo è già contato nel testo di quello esterno: contarlo
+          // due volte allargherebbe il margine e farebbe salire troppo.
+          if (pezzo.parentElement && pezzo.parentElement.closest(PEZZO)) continue;
+          marcato += pezzo.textContent || '';
+        }
         const tutto = (el.textContent || '').replace(/\s+/g, '');
         return tutto.length <= marcato.replace(/\s+/g, '').length + TESTO_LIBERO;
       }

@@ -361,6 +361,30 @@ titolo, l'immagine e un tasto, e vive nei due posti di sempre: lo userscript e l
   script si inietta a documento vuoto **senza errori**, lo `<style>` entra, e la barra 'Usa
   l'app' resta a **0** contro i 67 pixel che occupa senza.
 
+⚠️⚠️ **E DALLA `2.19.2` LA SALITA HA UN CONFINE, E LA NAVIGAZIONE UNA GUARDIA PER URL**
+(sua segnalazione, 2026-10-09: *la ricerca resta sulla pagina di verifica, che verifica in
+loop; poi si sblocca, ma la pagina resta bianca*; con lo script spento Qwant funziona).
+
+- **La pagina bianca**: il conto del testo non bastava. Mentre i risultati non sono ancora
+  arrivati, i loro contenitori sono **vuoti** e passano il conto, e un pezzo marcato dentro un
+  altro veniva contato due volte, allargando il margine. Nascosto un contenitore dell'app, i
+  risultati arrivati dopo restavano nascosti, perché il titolo marcato non si rivaluta. Adesso
+  `#root`, `main`, `#main-content`, `containerWeb` e `sectionWeb`, e ciò che li contiene, non
+  si nascondono mai, e ogni pezzo si conta una volta sola.
+- **La verifica in loop**: Qwant scrive l'URL della ricerca con gli stessi valori in un altro
+  ordine, e il modulo dei parametri fissi confrontava il testo dell'URL, non i valori: ogni
+  ricerca diventava due richieste dei risultati a mezzo secondo l'una dall'altra, con la
+  prima interrotta, anche a verifica DataDome in corso. Adesso si confrontano i valori, non si
+  naviga mai con `ddChallengeContainer` in pagina, i parametri sconosciuti restano, e ogni URL
+  di destinazione si forza al massimo una volta per sessione (`sessionStorage`, chiave
+  `qr-fp:<url>`), al posto della guardia a tempo di 2 secondi.
+- **La controprova è il banco Playwright con le pagine servite all'indirizzo vero** (tre casi,
+  la versione vecchia contro la nuova): risultati arrivati dopo l'annuncio, invisibili prima e
+  visibili dopo; ricerca con i valori giusti in un altro ordine, due documenti caricati prima e
+  uno dopo; verifica in pagina, due documenti prima e uno dopo.
+- ⚠️ **La verifica vera non si è vista dal container**: Qwant risponde **403** a ogni
+  ricerca, con lo script e senza. La conferma la dà l'utente.
+
 ## 📥 ENF Roccobot: il picker, e il sito che è stato tolto
 
 **Com'è fatto** (dalla 1.2.0, con javguru rimossa nella 1.3.0). Il tasto apre un **picker** quando la pagina ha più di un
