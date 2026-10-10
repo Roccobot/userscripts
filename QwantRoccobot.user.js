@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Qwant Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      2.20.1
-// @description  Declutters Qwant and opens image results on the original file. Home page: only the logo and a bare search field (no tagline, no placeholder, no search button, nothing below; Enter searches). Home page and results page: the official logo instead of event doodles; no left sidebar, footer, promo cards, options/filters button or ads (in-line data-testid adResult, advertiser cards with their vendor badge, image and call to action, and right column); fixed search parameters per tab; the Filters button shown on image search; no image preview strip on web search; and, behind an experimental flag, result links rewritten to skip the fdn.qwant.com tracking redirect. Image search: a click opens the original file, taken from the React state already in the page or else from the thumbnail URL, which matters now that Qwant serves Bing thumbnails that cannot be reversed; when neither works, the click is left untouched. That module makes no network request and runs only on the Images tab, because its global listeners on web search used to trip Qwant's anti-bot (403).
+// @version      2.21.0
+// @description  Declutters Qwant and opens image results on the original file. Home page: only the logo and a bare search field (no tagline, no placeholder, no search button, nothing below; Enter searches). Home page and results page: the official logo instead of event doodles; no left sidebar, footer, promo cards, options/filters button or ads (in-line data-testid adResult, advertiser cards with their vendor badge, image and call to action, and right column); fixed search parameters per tab, applied from the home page in a single load (Enter, the search button or a suggestion go straight to the final URL); the Filters button shown on image search; no image preview strip on web search; and, behind an experimental flag, result links rewritten to skip the fdn.qwant.com tracking redirect. Image search: a click opens the original file, taken from the React state already in the page or else from the thumbnail URL, which matters now that Qwant serves Bing thumbnails that cannot be reversed; when neither works, the click is left untouched. That module makes no network request and runs only on the Images tab, because its global listeners on web search used to trip Qwant's anti-bot (403).
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://www.qwant.com/*
@@ -136,6 +136,75 @@
         if (t !== location.href && !giaForzato(t)) location.replace(t);
       } else { prev = cur; }                         // stessa tab+query = aggiustamento Filtri -> lascia
     }, 500);
+
+    // FROM THE HOME PAGE, STRAIGHT TO THE FULL ADDRESS (2.21.0). Without this, the first search
+    // loads twice: Qwant opens `?q=...&t=web` with its own parameters, and the block above then
+    // reloads with ours. Here Enter, the search button and a suggestion go to the final URL at once.
+    // Listeners live on the search form and on the suggestion list only, never on window or
+    // document: global listeners are what tripped the anti-bot in 2.6 (README, 'Come funziona').
+    // Hooks are stable attributes: form[data-testid=mainSearchBar], #search-suggestions,
+    // [role=option] with the query in aria-label. If they change, the reload above is the net.
+    (function dallaHome() {
+      function inHome() {
+        try { return !new URL(location.href).searchParams.get('q'); } catch (e) { return false; }
+      }
+      // One departure per search: a suggestion fires pointerdown and then click. Once the
+      // search has left, the later events are blocked too, or the click reaches Qwant and its
+      // own search runs over ours (measured: two pages, two result requests).
+      // The guard is timed: Back can restore this very page from the browser's cache, and a
+      // plain flag left on would then block every search that follows.
+      const PARTENZA_MS = 2000;
+      let partito = 0;
+      function vai(q, extra, e) {
+        if (Date.now() - partito < PARTENZA_MS) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+        q = (q || '').trim();
+        if (!q || !inHome() || sfidaInCorso()) return;
+        partito = Date.now();
+        let u; try { u = new URL(location.origin + '/'); } catch (err) { return; }
+        if (extra) for (const k in extra) u.searchParams.set(k, extra[k]);
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        // assign, not replace: Back returns to the home page, as after a normal search.
+        location.assign(target(u, q, 'web'));
+      }
+      function suggerimento(e) {
+        if (e.button !== undefined && e.button !== 0) return;   // only the main button picks
+        const o = e.target instanceof Element && e.target.closest('[role="option"]');
+        if (o) vai(o.getAttribute('aria-label'), { origin: 'suggest' }, e);
+      }
+      function aggancia() {
+        if (!inHome()) { clearInterval(giro); return; }
+        const f = document.querySelector('form[data-testid="mainSearchBar"]');
+        if (f && !f.dataset.qrHome) {
+          f.dataset.qrHome = '1';
+          const testo = () => { const i = f.querySelector('input[name="q"]'); return i && i.value; };
+          // Enter never submits the form: Qwant listens to the key on the field (measured), so
+          // the key is caught here, in the capture phase, before Qwant's own handler.
+          f.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' || e.isComposing || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+            // A suggestion picked with the arrow keys wins over the typed text, as in Qwant.
+            const sel = document.querySelector('#search-suggestions [role="option"][aria-selected="true"]');
+            if (sel) vai(sel.getAttribute('aria-label'), { origin: 'suggest' }, e);
+            else vai(testo(), null, e);
+          }, true);
+          f.addEventListener('click', function (e) {
+            if (e.target instanceof Element && e.target.closest('#submit-button')) vai(testo(), null, e);
+          }, true);
+        }
+        const l = document.getElementById('search-suggestions');
+        if (l && !l.dataset.qrHome) {
+          l.dataset.qrHome = '1';
+          // Qwant picks a suggestion on the pointer's press, before mousedown (measured): all
+          // three are caught, and `partito` keeps it to one departure.
+          l.addEventListener('pointerdown', suggerimento);
+          l.addEventListener('mousedown', suggerimento);
+          l.addEventListener('click', suggerimento);
+        }
+      }
+      if (!inHome()) return;
+      const giro = setInterval(aggancia, 150);
+      alDocumento(aggancia);
+    })();
   })();
 
   // ═══════════════════════════════════════════════════════════════════════

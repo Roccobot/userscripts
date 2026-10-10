@@ -88,6 +88,14 @@ modificare i valori → salvare (Ctrl+S).
   sfarfallio) e sostituisce il logo (`img[data-testid="logoHero"]` in home,
   `svg[data-testid="qwantSoccerLogoTopbar"]` in SERP) con il wordmark Qwant
   ufficiale incorporato.
+- **Prima ricerca in un caricamento solo** (dalla v2.21.0): dalla home, Invio, il tasto
+  di ricerca o un suggerimento vanno direttamente all'indirizzo completo, coi parametri
+  fissi già dentro. Prima Qwant apriva i risultati coi suoi parametri e lo script
+  ricaricava la pagina coi tuoi, cioè la prima ricerca chiedeva i risultati due volte. I
+  gestori sono agganciati al solo modulo di ricerca (`form[data-testid="mainSearchBar"]`)
+  e alla lista dei suggerimenti (`#search-suggestions`), mai alla pagina intera, per non
+  rifare il difetto dei listener globali descritto qui sotto. Se Qwant cambia quegli
+  attributi, resta il ricaricamento di prima.
 - **Immagini** (approccio *senza rete*, e dalla v2.7.0 *solo sulla scheda
   Immagini*): il modulo immagini **non fa nessuna chiamata di rete e non tocca
   `fetch`/`XHR`**. Ricava l'URL originale **solo dal DOM**: in particolare

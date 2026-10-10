@@ -385,6 +385,31 @@ loop; poi si sblocca, ma la pagina resta bianca*; con lo script spento Qwant fun
 - ⚠️ **La verifica vera non si è vista dal container**: Qwant risponde **403** a ogni
   ricerca, con lo script e senza. La conferma la dà l'utente.
 
+⚠️⚠️ **E DALLA `2.21.0` LA PRIMA RICERCA DALLA HOME CHIEDE I RISULTATI UNA VOLTA SOLA** (sua
+richiesta, 2026-10-10: *falla, 2.21.0*). Prima Qwant apriva i risultati coi suoi parametri
+(`locale=en_US`, `safesearch=1`) e il modulo dei parametri fissi ricaricava coi suoi, cioè due
+richieste all'API per una ricerca. Adesso, dalla home, Invio, il tasto di ricerca e un suggerimento
+vanno direttamente all'indirizzo completo (`dallaHome`, nel modulo 0).
+
+- **Il banco misura le richieste a `api.qwant.com/v3/search/`, non le pagine**: il passaggio di Qwant
+  ai risultati non ricarica la pagina, quindi contando i soli caricamenti vecchio e nuovo sembravano
+  uguali. Con le richieste: 2 contro 1 in tutti e quattro i modi (Invio, tasto, clic su un
+  suggerimento, frecce e Invio). La home di Qwant dal container risponde, la ricerca no (DataDome).
+- ⚠️⚠️ **Invio non invia il modulo**: Qwant ascolta il tasto sul campo, e un gestore su `submit` non
+  scatta mai (misurato). Si prende il `keydown` in fase di cattura sul modulo.
+- ⚠️⚠️ **Qwant sceglie un suggerimento alla pressione del puntatore**, prima di `mousedown`: si
+  prendono `pointerdown`, `mousedown` e `click`, e dopo la partenza gli eventi successivi si
+  **bloccano**. Lasciato passare, il `click` arrivava a Qwant e la sua ricerca correva sopra la
+  nostra (misurato: due pagine e due richieste).
+- ⚠️ **La guardia della partenza è a tempo (due secondi), non un booleano**: Indietro può restituire
+  la home dalla cache del browser, e un booleano rimasto acceso bloccherebbe ogni ricerca dopo.
+- ⚠️ **I gestori vivono sul modulo e sulla lista dei suggerimenti, mai su `window` o `document`**:
+  i listener globali sono quelli che nella `2.6` facevano scattare l'anti-bot (README, 'Come
+  funziona'). La lista è fuori dal modulo, e si aggancia quando compare.
+- **Se Qwant cambia gli agganci** (`form[data-testid="mainSearchBar"]`, `#search-suggestions`,
+  `[role="option"]` con la parola in `aria-label`, `#submit-button`), resta il ricaricamento di
+  prima: niente si rompe.
+
 ## 📥 ENF Roccobot: il picker, e il sito che è stato tolto
 
 **Com'è fatto** (dalla 1.2.0, con javguru rimossa nella 1.3.0). Il tasto apre un **picker** quando la pagina ha più di un
