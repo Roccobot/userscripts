@@ -446,9 +446,8 @@ nome del file. Copre `enf-cmnf.cc`, `enfhub.com` e `xhamster.com`.
     codice nuovo: basterebbe rimettere il `@match`.
   - ⚠️ **Con javguru è caduto anche il ponte coi frame**, che era nato per lei: `@noframes` è
     tornato. Era codice che nessun sito coperto poteva più attivare, e in più faceva girare lo
-    script dentro **ogni** iframe delle pagine coperte, comprese le pubblicità. La sua idea
-    (nel frame nessuna interfaccia, solo un annuncio al livello sopra, ripetuto perché il
-    manifest arriva in ritardo) vive in questa nota e nella storia git, se un domani servisse.
+    script dentro **ogni** iframe delle pagine coperte, comprese le pubblicità (dettagli in
+    `docs/Removed.md` § '🎞️ javguru.fit e il ponte coi frame').
   - ⚠️ **Rimosso anche lo stato 'not available' del tasto**, che diceva a chi guarda perché non
     c'era niente da prendere: senza frame da ascoltare non poteva più scattare. Era la risposta
     giusta alla domanda giusta ('il tasto non compare, è rotto?'), ma la risposta migliore è
