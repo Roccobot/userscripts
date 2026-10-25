@@ -32,3 +32,23 @@
     `bussaAiFrame` e `avvioNelFrame`;
   - i loro agganci in `fonti()`, nel picker e nell'avvio.
 - Il comando che mostra lo script di allora: `git show 2798ca2^:ENFRoccobot.user.js`.
+
+## 🚫 Lo stato `not available` del tasto
+
+- **Che cosa faceva**: in `ENFRoccobot.user.js` il tasto di scaricamento aveva uno stato
+  'not available', che diceva a chi guarda perché non c'era niente da prendere. Scattava sui
+  siti dove lo script ascoltava i frame (javguru.fit): senza frame da ascoltare non poteva più
+  scattare.
+- **Tolto nella `1.3.0`** (2026-08-18), insieme al ponte coi frame della voce qui sopra. La
+  decisione, cioè che a un sito dove lo script non può fare nulla si risponde non facendolo
+  comparire, resta in `Rules.md` § '📥 ENF Roccobot: il picker, e il sito che è stato tolto'.
+- **Nessun punto di recupero nel ramo principale.** Lo stato non compare in nessun commit di
+  `main`: lo script della `1.2.0` (`2798ca2^`) non lo contiene, e la `1.3.0` (`2798ca2`) nasce
+  già senza. Lo cita solo il messaggio di quel commit. Non lo contiene nemmeno il ramo della PR
+  981 dell'hub, dove allora vivevano gli userscript (`refs/pull/981/head` di
+  `Roccobot/roccobot.github.io`, ancora sul remoto il 2026-10-25): ha un commit solo, uguale a
+  quello di `main`. Quindi è vissuto soltanto nella copia di lavoro della sessione che ha
+  scritto la `1.3.0`, prima del commit, e per riaverlo va riscritto.
+- **Dove viveva**: in `ENFRoccobot.user.js`, nel solo codice non committato di quella
+  sessione. Il tasto com'era subito prima, senza lo stato, si legge con
+  `git show 2798ca2^:ENFRoccobot.user.js`.

@@ -448,10 +448,11 @@ nome del file. Copre `enf-cmnf.cc`, `enfhub.com` e `xhamster.com`.
     tornato. Era codice che nessun sito coperto poteva più attivare, e in più faceva girare lo
     script dentro **ogni** iframe delle pagine coperte, comprese le pubblicità (dettagli in
     `docs/Removed.md` § '🎞️ javguru.fit e il ponte coi frame').
-  - ⚠️ **Rimosso anche lo stato 'not available' del tasto**, che diceva a chi guarda perché non
-    c'era niente da prendere: senza frame da ascoltare non poteva più scattare. Era la risposta
-    giusta alla domanda giusta ('il tasto non compare, è rotto?'), ma la risposta migliore è
-    stata **non far comparire lo script su un sito dove non può fare nulla**.
+  - ⚠️ **Il tasto non ha uno stato 'not available'**, e non va rimesso: a un sito dove lo
+    script non può fare nulla si risponde **non facendo comparire lo script**, non spiegando a
+    schermo perché non c'è niente da prendere. Lo stato rispondeva alla domanda giusta ('il
+    tasto non compare, è rotto?'), ma quella è la risposta migliore (dettagli in
+    `docs/Removed.md` § '🚫 Lo stato `not available` del tasto').
 - ⚠️⚠️ **Su xhamster si usano gli mp4 FIRMATI del CDN, NON i link di download del sito, e la
   1.3.0 aveva l'ordine rovesciato.** Correzione del 2026-08-17 su segnalazione dell'utente, che
   vedeva un `403` a schermo. La misura che decide: `movies/<id>/download/<q>` risponde **403 con
