@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Decent Image Viewer
 // @namespace       https://roccobot.github.io/
-// @version         3.1.2
+// @version         3.2.0
 // @description     Decent image viewer for the browser's own image pages, for local files (file:///) and for SVG. Checkerboard background; one-line info panel with format, weight, pixel size and zoom; the image fits the view but never grows past its real size (1:1 with physical pixels), and a click toggles fit and 1:1. Zoom acts on the image only, never on the page: the bare wheel steps through round values and snaps at 100%, from 2% to 4000%; ctrl+wheel and pinch work too; dragging pans, with an overview navigator. Right-click opens its own menu (copy image, copy URL, image search, download, fit, 100/200/400%), and shift+right-click keeps the browser's. 'Image search' hands the image to a reverse image search engine, chosen in the options among Google Lens, Yandex, Bing and TinEye; on a local file, where no engine can reach the image, it copies the picture and opens the engine so it can be pasted. SVG stays vector and exports either as PNG at a chosen DPI or as an SVG stripped of metadata. Keys: A fill-view mode, I wheel direction, N navigator. The Options entry in the manager's menu opens a settings page: interface language (Italian, English or automatic), theme, gestures and export defaults, all kept across script updates.
 // @author          Rocco Casadei, a.k.a. Roccobot
 // @icon            https://roccobot.github.io/userscripts/Roccobot.png
@@ -642,6 +642,15 @@
     '#dv-menu .dv-mv:hover,#dv-menu .dv-mv.dv-sel{background:rgba(255,255,255,.16)}' +
     '#dv-menu .dv-mv-key{opacity:.45;font-size:12px}' +
     '#dv-menu .dv-msep{height:1px;margin:5px 8px;background:rgba(255,255,255,.14)}' +
+    // Touch-first device (pointer: coarse, e.g. Violentmonkey on an Android Chromium browser): the
+    // menu opens with a long press, and every target grows to 44 px, the size of a fingertip. The
+    // key hints go, because a phone has no keyboard to press them on.
+    '@media (pointer:coarse){' +
+      '#dv-menu{font-size:15px}' +
+      '#dv-menu .dv-mv{min-height:44px;box-sizing:border-box;padding:0 14px}' +
+      '#dv-menu .dv-mv-key{display:none}' +
+      '#dv-scalemode::before,#dv-download::before{left:-.9em;right:-.9em;top:-.9em;bottom:-.9em}' +
+    '}' +
     // messaggio momentaneo in basso (conferma del verso della rotella)
     '#dv-toast{position:fixed;left:50%;bottom:2rem;transform:translateX(-50%);z-index:12;pointer-events:none;' +
       'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Helvetica Neue",Arial,sans-serif;' +
@@ -1932,6 +1941,12 @@
         '.dv-go:hover{background:rgba(255,255,255,.26)}' +
         '.dv-go[disabled]{opacity:.45;cursor:default}' +
         '.dv-sep{border:0;border-top:1px solid rgba(255,255,255,.14);margin:.85rem 0}' +
+        // Touch-first device: the same panel, with every control at least 44 px tall.
+        '@media (pointer:coarse){' +
+          '#dv-dl{font-size:15px}' +
+          '#dv-dpi,.dv-chip,.dv-go,.dv-dl-opt{min-height:44px}' +
+          '.dv-chip{min-width:44px;font-size:14px}' +
+        '}' +
         '.dv-ghost{display:block;width:100%;min-height:28px;margin-top:.35rem;font:inherit;font-size:12px;' +
           'color:#fff;opacity:.62;cursor:pointer;background:none;border:0;padding:.2rem;text-align:center}' +
         '.dv-ghost:hover{opacity:1}' +
@@ -2255,7 +2270,23 @@
       '.dv-o-echo{color:var(--dv-acc);font-size:.9rem;opacity:0;transition:opacity .15s}' +
       '.dv-o-echo.dv-on{opacity:1}' +
       '.dv-o-note{color:var(--dv-sub);font-size:.82rem;margin-top:1.6rem}' +
-      ':focus-visible{outline:2px solid var(--dv-acc);outline-offset:2px}'
+      ':focus-visible{outline:2px solid var(--dv-acc);outline-offset:2px}' +
+      // Touch-first device: fields, menus and buttons at least 44 px tall, and bigger boxes.
+      '@media (pointer:coarse){' +
+        '.dv-o-ctl{min-height:44px}' +
+        '.dv-o-ctl select,.dv-o-ctl input[type=number],.dv-o-reset{min-height:44px;box-sizing:border-box;font-size:1rem}' +
+        '.dv-o-ctl input[type=checkbox]{width:1.6rem;height:1.6rem}' +
+        '.dv-o-guard{display:inline-flex;align-items:center;min-height:44px}' +
+      '}' +
+      // ...and on a narrow screen the control goes under its text, at full width, so a long
+      // description does not squeeze the field into a sliver.
+      '@media (pointer:coarse) and (max-width:34rem){' +
+        '#dv-options{padding:1.4rem .9rem 3rem}' +
+        '.dv-o-row{flex-direction:column;align-items:stretch;gap:.55rem}' +
+        '.dv-o-row.dv-o-bool{flex-direction:row;align-items:center}' +
+        '.dv-o-ctl{justify-content:flex-end}' +
+        '.dv-o-ctl select{max-width:none;flex:1 1 auto}' +
+      '}'
     );
 
     var root = document.getElementById('dv-options');
@@ -2339,6 +2370,8 @@
             if (r.k === 'dv-lang') location.reload();
           });
         } else if (o.t === 'bool') {
+          // a lone checkbox stays beside its text even on a narrow screen (see the stylesheet)
+          row.classList.add('dv-o-bool');
           field = document.createElement('input');
           field.type = 'checkbox';
           // ⚠️ `negated` serve quando l'etichetta dice il CONTRARIO della chiave

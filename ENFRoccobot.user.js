@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ENF Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.5.1
+// @version      1.6.0
 // @description  Adds a Download button to enf-cmnf.cc, enfhub.com and xhamster.com that saves the page's videos. On enf-cmnf.cc photo posts a second button packs every full-size image of the post into a single ZIP, built in the script itself with no external library: it takes the widest srcset candidate, retries the un-resized WordPress original (the -800x600 suffix hides a bigger file), skips avatars, icons and thumbnails from the sidebars, downloads a few images at a time and lists the failed ones once at the end. On xhamster it also forces the English site (no language subdomain) and picks the highest resolution on its own, asking only when the same resolution comes in more than one codec. Covers every player the two sites use: direct MP4 (<source> or <video src>), self-hosted HLS on cdn.enf-cmnf.cc, and enfhub's HLS (master.m3u8, read from the player or derived from the poster); HLS is fetched segment by segment and joined into one .ts file. On forum threads it opens a picker that lists the videos in page order with a thumbnail, the post number and the author, lets you tick several of them and downloads them one after the other, writing the post number into each filename. Progress on the button, second click cancels.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -1288,6 +1288,12 @@
   var ID_BARRA = 'rb-enf-bar', ID_ELENCO = 'rb-enf-menu';
   var tastoImg = null;
 
+  // Touch-first device (pointer: coarse, e.g. Violentmonkey on an Android Chromium browser):
+  // buttons and picker move to the left side, and every control grows to a finger-sized target.
+  var TOUCH = matchMedia('(pointer: coarse)').matches;
+  var LATO = TOUCH ? 'left' : 'right';
+  var BASSO = 'calc(16px + env(safe-area-inset-bottom, 0px))';
+
   function stile(el, css) { for (var k in css) el.style.setProperty(k, css[k], 'important'); }
 
   // ⚠️ The two buttons live in a column, not one on top of the other by
@@ -1302,8 +1308,8 @@
     b = document.createElement('div');
     b.id = ID_BARRA;
     stile(b, {
-      'position': 'fixed', 'bottom': '16px', 'right': '16px', 'z-index': '2147483647',
-      'display': 'flex', 'flex-direction': 'column', 'align-items': 'flex-end', 'gap': '8px',
+      'position': 'fixed', 'bottom': BASSO, [LATO]: '16px', 'z-index': '2147483647',
+      'display': 'flex', 'flex-direction': 'column', 'align-items': TOUCH ? 'flex-start' : 'flex-end', 'gap': '8px',
       'margin': '0', 'padding': '0', 'border': 'none', 'background': 'none',
       'pointer-events': 'none'
     });
@@ -1319,7 +1325,7 @@
       'position': 'static', 'display': 'none', 'visibility': 'visible', 'opacity': '0.92',
       'width': '210px', 'box-sizing': 'border-box', 'text-align': 'center',
       'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis',
-      'height': 'auto', 'margin': '0', 'padding': '11px 14px',
+      'height': 'auto', 'margin': '0', 'padding': TOUCH ? '15px 14px' : '11px 14px',
       'border': 'none', 'border-radius': '999px',
       'background': tinta, 'color': '#fff',
       'font': '700 14px/1 system-ui, -apple-system, sans-serif',
@@ -1393,13 +1399,13 @@
     // ⚠️ Measured, not a constant: with two buttons the strip is twice as tall,
     // and a hard-coded 64px would drop the picker on top of the images button.
     var barraEl = document.getElementById(ID_BARRA);
-    var sopra = ((barraEl ? barraEl.offsetHeight : 44) + 24) + 'px';
+    var sopra = 'calc(' + ((barraEl ? barraEl.offsetHeight : 44) + 24) + 'px + env(safe-area-inset-bottom, 0px))';
 
     var m = document.createElement('div');
     m.id = ID_ELENCO;
     stile(m, {
-      'position': 'fixed', 'bottom': sopra, 'right': '16px', 'z-index': '2147483647',
-      'width': 'min(460px, 94vw)', 'max-height': 'min(70vh, 640px)',
+      'position': 'fixed', 'bottom': sopra, [LATO]: TOUCH ? '3vw' : '16px', 'z-index': '2147483647',
+      'width': 'min(460px, 94vw)', 'max-height': TOUCH ? 'min(62vh, 640px)' : 'min(70vh, 640px)',
       'display': 'flex', 'flex-direction': 'column',
       'padding': '0', 'border-radius': '14px', 'overflow': 'hidden',
       'background': '#1b1b1b', 'color': '#fff', 'box-shadow': '0 10px 30px rgba(0,0,0,.55)',
@@ -1433,7 +1439,8 @@
       var c = document.createElement('input');
       c.type = 'checkbox';
       c.checked = false;
-      stile(c, { 'flex': '0 0 auto', 'width': '17px', 'height': '17px', 'margin': '0', 'cursor': 'pointer' });
+      var lato = TOUCH ? '22px' : '17px';
+      stile(c, { 'flex': '0 0 auto', 'width': lato, 'height': lato, 'margin': '0', 'cursor': 'pointer' });
       c.addEventListener('change', aggiornaTotale);
       caselle.push({ casella: c, voce: v });
       riga.appendChild(c);
@@ -1483,7 +1490,7 @@
         vai.textContent = '⌖';
         vai.title = 'Show it in the page';
         stile(vai, {
-          'flex': '0 0 auto', 'width': '28px', 'height': '28px', 'padding': '0',
+          'flex': '0 0 auto', 'width': TOUCH ? '44px' : '28px', 'height': TOUCH ? '44px' : '28px', 'padding': '0',
           'border': 'none', 'border-radius': '7px', 'background': '#3d3d3d',
           'color': '#fff', 'cursor': 'pointer', 'font': '400 15px/1 system-ui, sans-serif'
         });
@@ -1508,7 +1515,7 @@
       b.type = 'button';
       b.textContent = testo_;
       stile(b, {
-        'padding': '8px 12px', 'border': 'none', 'border-radius': '8px',
+        'padding': TOUCH ? '15px 16px' : '8px 12px', 'border': 'none', 'border-radius': '8px',
         'background': sfondo, 'color': '#fff', 'cursor': 'pointer',
         'font': '700 13px/1 system-ui, -apple-system, sans-serif'
       });

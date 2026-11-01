@@ -13,6 +13,14 @@ GitHub Pages, si installano (e si aggiornano) direttamente dal loro URL.
 >
 > Vale anche per ogni script nuovo, salvo richiesta diversa.
 
+> **Sul telefono.** Gli script funzionano anche su Android, con
+> [Violentmonkey](https://violentmonkey.github.io/) nei browser basati su Chromium che
+> installano le estensioni di Chrome. Quando il puntatore principale è un dito
+> (`pointer: coarse`), le pillole di scaricamento (PH, ENF, Fapopedia, NSFWA) passano
+> **in basso a sinistra** e ogni comando è alto almeno 44 px; in DIV il menu
+> dell'immagine si apre con la pressione lunga, e il pannello delle opzioni mette i campi
+> sotto il testo.
+
 ## Qwant Roccobot
 
 **File:** `QwantRoccobot.user.js` · **Titolo (`@name`):** `Qwant Roccobot`
@@ -318,7 +326,7 @@ Su `pornhub.com` fa quattro cose:
    **`www.pornhub.com`** conservando percorso e query (`location.replace`): coi
    cookie giusti `www.` "tiene". Guardia anti-loop a tempo (se PH rimbalzasse, non
    insiste, ma non resta bloccata).
-2. **Tasto "⬇️ Download video"** in basso a destra (sempre visibile): scarica il
+2. **Tasto "⬇️ Download video"** in basso a destra, a sinistra sul telefono (sempre visibile): scarica il
    file alla **qualità massima**. Legge a runtime l'oggetto `flashvars_<viewkey>` e
    le sue `mediaDefinitions`, **espande** le definizioni "remote" (`get_media`) e
    sceglie l'**MP4** con la qualità più alta; il download va su disco via

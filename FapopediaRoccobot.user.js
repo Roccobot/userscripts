@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fapopedia Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.2.1
+// @version      1.3.0
 // @description  Adds a button to fapopedia.net that downloads every image of a gallery at full resolution, packed into one ZIP. Originals are derived from the thumbnail URLs (the 't_' prefix is dropped) and fetched with GM_xmlhttpRequest; the ZIP comes from a small built-in writer (store method, no dependency: JSZip stalled while compressing inside the sandbox). Nothing is uploaded: downloads only.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -153,10 +153,14 @@
 
   // ── Pulsante flottante ──
   let inCorso = false;
+  // Touch-first device (pointer: coarse, e.g. Violentmonkey on an Android Chromium browser):
+  // the pill moves to the bottom-left corner and grows to a finger-sized target (44 px tall).
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
   function stile(b) {
     Object.assign(b.style, {
-      position: 'fixed', zIndex: '2147483647', bottom: '18px', right: '18px',
-      padding: '12px 16px', borderRadius: '999px', border: 'none',
+      position: 'fixed', zIndex: '2147483647', bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
+      [TOUCH ? 'left' : 'right']: '18px',
+      padding: TOUCH ? '15px 16px' : '12px 16px', borderRadius: '999px', border: 'none',
       background: '#e6005c', color: '#fff',
       font: '600 14px/1 system-ui,-apple-system,sans-serif',
       cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)'

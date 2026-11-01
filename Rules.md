@@ -78,6 +78,37 @@
   aggiornamento, anche minore/patch: dopo ogni pubblicazione l'URL va ripetuto,
   senza eccezioni.
 
+## 📱 Sul telefono: `pointer: coarse`, pillole a sinistra, bersagli da 44 px
+
+Dal 2026-11-01 (`Tascabile`, richiesta dell'utente: i browser Android basati su Chromium con
+Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul telefono.
+
+- **La versione mobile la decide il tocco, non la larghezza** (scelta Rilevo-01): vale quando
+  il puntatore principale è un dito, `matchMedia('(pointer: coarse)')` in JS e
+  `@media (pointer:coarse)` nei fogli di stile, anche col telefono in orizzontale. La sola
+  disposizione del pannello di DIV guarda anche la larghezza (`max-width:34rem`), perché su un
+  tablet i campi stanno bene accanto al testo.
+- **Le pillole di scaricamento vanno in basso a sinistra** (scelta Pillola-01) e sono alte
+  almeno **44 px**; il margine in basso somma `env(safe-area-inset-bottom)`. Sul desktop restano
+  in basso a destra, com'erano. Uno script nuovo con una pillola segue la stessa regola.
+- **Ogni comando toccabile misura almeno 44 px** (voci del menu e tondi della pillola di DIV,
+  caselle, tasti e campi dei pannelli); i tasti delle scorciatoie nel menu di DIV si nascondono,
+  perché sul telefono non c'è una tastiera.
+- **DIV: il menu dell'immagine si apre con la pressione lunga**, che Chrome per Android consegna
+  come evento `contextmenu`; l'utente lo ha visto funzionare sul suo telefono. ⚠️ Il banco non lo
+  riproduce: il tocco lungo simulato con `Input.dispatchTouchEvent` non genera `contextmenu` in
+  Chromium senza finestra, quindi la prova apre il menu con l'evento.
+- **NSFWA: sul telefono le esche si tolgono al `pointerdown` del dito**, perché il browser sceglie
+  il bersaglio della pressione lunga quando il dito si appoggia, prima del `contextmenu`.
+- ⚠️ **Il banco con Playwright inganna con le schermate a pagina intera**: `fullPage: true`
+  ridimensiona la finestra e perde l'emulazione del tocco, quindi la schermata mostra la
+  disposizione del desktop mentre le misure dicono quella del telefono. Si fotografa la finestra
+  e si scorre.
+- ⚠️ **LotRWiki non si è potuta misurare sul telefono**: dal container Fandom risponde con la
+  verifica di Cloudflare. Lo script è solo CSS e non disegna niente, quindi non ha comandi da
+  adattare; se la versione mobile della wiki lascia in pagina qualcosa da togliere, serve una
+  schermata dell'utente.
+
 ## 🌍 'Decent Image Viewer' è BILINGUE, ed è una deroga dichiarata
 
 Dalla 2.21 la UI di `DIVRoccobot.user.js` è **italiana o inglese**, scelta dall'utente o

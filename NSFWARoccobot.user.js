@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NSFWA Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.1.1
+// @version      1.2.0
 // @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the real image becomes clickable again, so open-image and save-image reach the actual imx.to file; #zoom is forced visible and on top, and the SVG and lens decoys over it are neutralized, hidden #zoom included. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -93,8 +93,10 @@
         spegni(el);
       }
     }
+    // On a phone the menu comes from a long press, and the browser picks its target when the
+    // finger lands: the decoys are cleared at the touch's pointerdown, not at the contextmenu.
     function suTastoDestro(e) {
-      if (e.button === 2 || e.type === 'contextmenu') scopriSotto(e.clientX, e.clientY);
+      if (e.button === 2 || e.type === 'contextmenu' || e.pointerType === 'touch') scopriSotto(e.clientX, e.clientY);
     }
 
     function avvio() {
@@ -266,9 +268,13 @@
       b.type = 'button';
       b.textContent = '⬇️ Download set (ZIP)';
       b.title = 'Download every image of the set at full resolution in one ZIP\n(name: "studio - model - title.zip", taken from the page).';
+      // Touch-first device (pointer: coarse, e.g. Violentmonkey on an Android Chromium browser):
+      // the pill moves to the bottom-left corner and grows to a finger-sized target (44 px tall).
+      const touch = matchMedia('(pointer: coarse)').matches;
       Object.assign(b.style, {
-        position: 'fixed', zIndex: '2147483647', bottom: '16px', right: '16px',
-        padding: '10px 14px', borderRadius: '999px', border: 'none',
+        position: 'fixed', zIndex: '2147483647', bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+        [touch ? 'left' : 'right']: '16px',
+        padding: touch ? '15px 14px' : '10px 14px', borderRadius: '999px', border: 'none',
         background: '#c2185b', color: '#fff',
         font: '600 14px/1 system-ui, -apple-system, sans-serif',
         cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', opacity: '0.9'

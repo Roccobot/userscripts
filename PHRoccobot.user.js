@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PH Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.10.1
+// @version      1.11.0
 // @description  On pornhub.com: keeps the site in English and Worldwide by rewriting the lang=en and overwriteCCVal=world cookies on every load (PH resets them to Italian now and then), and redirects the language subdomains (it.pornhub.com and so on) to www.pornhub.com so titles are never translated. Adds an always-visible download button at the bottom right: highest MP4 quality available; progress on the button; second click cancels; file named '[Channel] Title.mp4'; source read at runtime from flashvars/mediaDefinitions. Also cleans up the page: removes the Google sign-in popup, hides the 'Click here to watch the full scene' overlay on the player and the AI assistant button in the header, and makes every link to another video page open in a new tab.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -501,15 +501,19 @@
       b.type = 'button';
       b.textContent = '⬇️ Download video';
       b.title = 'Download the video at the highest quality available';
+      // Touch-first device (pointer: coarse, e.g. Violentmonkey on an Android Chromium browser):
+      // the pill moves to the bottom-left corner and grows to a finger-sized target (44 px tall).
+      const touch = matchMedia('(pointer: coarse)').matches;
       // stili con !important: il CSS di PornHub non può nasconderlo/spostarlo
       const st = {
-        'position': 'fixed', 'bottom': '16px', 'right': '16px', 'z-index': '2147483647',
+        'position': 'fixed', 'bottom': 'calc(16px + env(safe-area-inset-bottom, 0px))',
+        [touch ? 'left' : 'right']: '16px', 'z-index': '2147483647',
         'display': 'block', 'visibility': 'visible', 'opacity': '0.92',
         // larghezza FISSA + testo centrato: le cifre della percentuale non fanno
         // "ballare" il tasto; il testo lungo viene troncato con l'ellissi.
         'width': '200px', 'box-sizing': 'border-box', 'text-align': 'center',
         'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis',
-        'height': 'auto', 'margin': '0', 'padding': '10px 14px',
+        'height': 'auto', 'margin': '0', 'padding': touch ? '15px 14px' : '10px 14px',
         'border': 'none', 'border-radius': '999px',
         'background': '#ff9000', 'color': '#000',
         'font': '700 14px/1 system-ui, -apple-system, sans-serif',
