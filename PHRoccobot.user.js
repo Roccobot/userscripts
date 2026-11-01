@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         PH Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.11.0
-// @description  On pornhub.com: keeps the site in English and Worldwide by rewriting the lang=en and overwriteCCVal=world cookies on every load (PH resets them to Italian now and then), and redirects the language subdomains (it.pornhub.com and so on) to www.pornhub.com so titles are never translated. Adds an always-visible download button at the bottom right: highest MP4 quality available; progress on the button; second click cancels; file named '[Channel] Title.mp4'; source read at runtime from flashvars/mediaDefinitions. Also cleans up the page: removes the Google sign-in popup, hides the 'Click here to watch the full scene' overlay on the player and the AI assistant button in the header, and makes every link to another video page open in a new tab.
+// @version      1.12.0
+// @description  On pornhub.com: keeps the site in English and Worldwide by rewriting the lang=en and overwriteCCVal=world cookies on every load (PH resets them to Italian now and then), and redirects the language subdomains (it.pornhub.com and so on) to www.pornhub.com so titles are never translated. Adds an always-visible download button at the bottom right: highest MP4 quality available; progress on the button; second click cancels; file named '[Channel] Title.mp4'; source read at runtime from flashvars/mediaDefinitions. Skips the video ad the player shows before playback. Also cleans up the page: removes the Google sign-in popup, hides the 'Click here to watch the full scene' overlay on the player and the AI assistant button in the header, and makes every link to another video page open in a new tab.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://*.pornhub.com/*
@@ -27,6 +27,31 @@
   // ════════════════════════ IMPOSTAZIONI ════════════════════════
   const FORZA_INTERNAZIONALE = true; // reindirizza it.pornhub.com (o altra lingua) → www.pornhub.com
   const SALVA_CON_DIALOGO = true;    // true = chiede dove salvare; false = scarica diretto
+  const SALTA_PUBBLICITA = true;     // niente video pubblicitario prima del play
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  0) NO PREROLL AD
+  // ═══════════════════════════════════════════════════════════════════════
+  // The player asks `/_xa/ads?...preroll_type=json` for the ad it plays before the video, and
+  // gets back {"ad": {duration, mediaFiles: [.../pre_videos/....mp4], ...}}. Answering {} (no ad)
+  // makes it load the video itself straight away. Measured on 2026-11-01 on a video page, as an
+  // Android phone: untouched, the player prepared two `pre_videos` ads; with the answer {} it
+  // prepared the video's own MP4 (`videos/.../480P_...mp4`), with no error in the page. The
+  // wrapper must be in place before the player starts, hence document-start, and it lives on
+  // the page's own `fetch` (unsafeWindow), which is the one the player calls. Any other request
+  // goes through untouched. (Firefox would need exportFunction; the scripts run on Chromium.)
+  if (SALTA_PUBBLICITA) {
+    try {
+      const w = unsafeWindow, realFetch = w.fetch;
+      w.fetch = function (input, init) {
+        const u = typeof input === 'string' ? input : (input && input.url) || '';
+        if (/\/_xa\/ads\?/.test(u) && /[?&]preroll_type=json/.test(u)) {
+          return w.Promise.resolve(new w.Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+        }
+        return realFetch.apply(w, arguments);
+      };
+    } catch (e) { /* never break the page */ }
+  }
 
   // ═══════════════════════════════════════════════════════════════════════
   //  1) FORZA INGLESE/INTERNAZIONALE (cookie di preferenza + redirect da it.)
@@ -505,8 +530,16 @@
       // the pill moves to the bottom-left corner and grows to a finger-sized target (44 px tall).
       const touch = matchMedia('(pointer: coarse)').matches;
       // stili con !important: il CSS di PornHub non può nasconderlo/spostarlo
+      // On a phone whose browser keeps its address bar at the bottom, the bar covers that corner
+      // until scrolling hides it (reported on 2026-11-01: the pill showed only after scrolling down).
+      // 100lvh - 100dvh is the bar's height while it shows and 0 once it hides, so the pill rides
+      // just above it; on a desktop the two are equal and nothing changes. Browsers without the
+      // dynamic units keep the plain distance.
+      const basso = CSS.supports('height', '100dvh')
+        ? 'calc(16px + env(safe-area-inset-bottom, 0px) + 100lvh - 100dvh)'
+        : 'calc(16px + env(safe-area-inset-bottom, 0px))';
       const st = {
-        'position': 'fixed', 'bottom': 'calc(16px + env(safe-area-inset-bottom, 0px))',
+        'position': 'fixed', 'bottom': basso,
         [touch ? 'left' : 'right']: '16px', 'z-index': '2147483647',
         'display': 'block', 'visibility': 'visible', 'opacity': '0.92',
         // larghezza FISSA + testo centrato: le cifre della percentuale non fanno

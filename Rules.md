@@ -91,6 +91,15 @@ Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul tele
 - **Le pillole di scaricamento vanno in basso a sinistra** (scelta Pillola-01) e sono alte
   almeno **44 px**; il margine in basso somma `env(safe-area-inset-bottom)`. Sul desktop restano
   in basso a destra, com'erano. Uno script nuovo con una pillola segue la stessa regola.
+- ⚠️ **Il margine in basso somma anche la barra degli indirizzi, con `100lvh - 100dvh`** (dalla
+  1.12.0 di PH, 2026-11-01: sul telefono dell'utente la pillola di PH compariva solo scorrendo
+  fino in fondo). Nei browser con la barra in basso, `position: fixed` misura dal fondo della
+  finestra **grande**, cioè quella a barra nascosta, e la barra copre la pillola finché non si
+  ritira. `100lvh - 100dvh` vale l'altezza della barra mentre è visibile e zero quando si
+  ritira, quindi la pillola sale e scende con lei. Il calcolo si applica solo dove il browser
+  conosce `dvh` (`CSS.supports`), e vale per le quattro pillole (PH, ENF, Fapopedia, NSFWA).
+  ⚠️ **La causa è un'ipotesi**: nel telefono emulato del banco la barra non c'è, `lvh` e `dvh`
+  coincidono e la pillola era già visibile; la conferma la dà il telefono dell'utente.
 - **Ogni comando toccabile misura almeno 44 px** (voci del menu e tondi della pillola di DIV,
   caselle, tasti e campi dei pannelli); i tasti delle scorciatoie nel menu di DIV si nascondono,
   perché sul telefono non c'è una tastiera.

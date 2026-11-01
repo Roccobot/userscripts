@@ -314,7 +314,7 @@ const NASCONDI_STICKY         = false; // barra superiore sticky (default: tenut
 
 **File:** `PHRoccobot.user.js` (titolo `@name`: **PH Roccobot**)
 
-Su `pornhub.com` fa quattro cose:
+Su `pornhub.com` fa cinque cose:
 
 1. **Mantiene inglese/internazionale.** Dall'Italia PH carica `it.pornhub.com` e
    **traduce i titoli** (non dipende dalla lingua UI, ma dal Paese). Le preferenze
@@ -357,10 +357,17 @@ Su `pornhub.com` fa quattro cose:
    miniature, per i correlati e per i link nei commenti senza conoscere il markup di
    ognuno. ⚠️ **`/video/search` è escluso**: è la pagina dei risultati, non un video, e
    con un semplice `/video/` ci finiva dentro anche lei.
+5. **Salta il video pubblicitario prima del play** (dalla 1.12.0, 2026-11-01). Il player chiede
+   la pubblicità con una richiesta `fetch` a `/_xa/ads?...preroll_type=json`; lo script, partito a
+   `document-start`, risponde al suo posto con `{}`, cioè 'nessuna pubblicità', e il player
+   carica subito il video. Misurato nel telefono emulato: senza script il player scarica due
+   video da `pre_videos/`, con lo script nessuno. Le altre richieste passano intatte, e se PH
+   cambia indirizzo la pubblicità torna senza rompere niente.
 
 ### Personalizzazione
 
 ```js
+const SALTA_PUBBLICITA     = true; // niente video pubblicitario prima del play
 const FORZA_INTERNAZIONALE = true; // it.pornhub.com (o altra lingua) → www.pornhub.com
 const SALVA_CON_DIALOGO    = true; // true = chiede dove salvare; false = scarica diretto
 ```
