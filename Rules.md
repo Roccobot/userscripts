@@ -17,6 +17,16 @@
   **nome del file** `.js` e il **titolo** (`@name`) da assegnare. Non deciderli
   in autonomia: attendere la risposta prima di creare il file. (Vale per i nuovi
   script; per gli aggiornamenti di script esistenti si mantengono nome e titolo.)
+- **La pagina d'installazione è `index.html`**, servita a <https://roccobot.github.io/userscripts/>
+  (richiesta dell'utente del 2026-11-02: *una paginetta come uno store di estensioni, così so
+  sempre dove andare per installarle*). Ogni script ha una scheda col tasto `Install`; l'elenco
+  vive **solo** in `SCRIPTS`, in testa al suo script, e la versione la legge la pagina dal
+  `@version` del file, quindi un aggiornamento non la tocca. ⚠️ **Uno script nuovo entra in
+  `SCRIPTS`** nello stesso commit, con nome, sito, una frase su che cosa fa e la sezione del
+  `README.md`; uno script tolto ne esce. La pagina è in inglese come le interfacce degli script,
+  e lega con lo spazio unificatore le parole corte alla successiva e l'ultima parola alla
+  precedente (prova sulle righe vere a 390 px e sul desktop). L'hub non la ospita perché là non
+  vivono progetti.
 - **Icona di DEFAULT per ogni userscript (istruzione dell'utente, 2026-07-26):
   sempre la stessa, `Roccobot.png` alla radice di questo repo.** Va messa nell'intestazione di
   ogni script, nuovo o esistente, senza chiedere:

@@ -21,6 +21,9 @@ GitHub Pages, si installano (e si aggiornano) direttamente dal loro URL.
 > dell'immagine si apre con la pressione lunga, e il pannello delle opzioni mette i campi
 > sotto il testo.
 
+> 🛒 **Tutti gli script, col tasto per installarli e la versione aggiornata:**
+> <https://roccobot.github.io/userscripts/>
+
 ## Qwant Roccobot
 
 **File:** `QwantRoccobot.user.js` · **Titolo (`@name`):** `Qwant Roccobot`

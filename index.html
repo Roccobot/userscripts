@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roccobot userscripts</title>
+<meta name="description" content="Roccobot's userscripts for Violentmonkey and Tampermonkey, one tap from install.">
+<link rel="icon" href="Roccobot.png">
+<!--
+  The install page of Roccobot's userscripts. The list of scripts lives in SCRIPTS below and
+  nowhere else; each version is read at runtime from the script's own @version, so the page
+  never shows a stale number. Every text reaches the page through textContent.
+  Author: Rocco Casadei, a.k.a. Roccobot
+-->
+<style>
+  :root {
+    color-scheme: light dark;
+    --fg: #16232b; --bg: #f4f6f7; --card: #fff; --line: #dfe4e7; --sub: #5d6d76; --acc: #1f5562; --on-acc: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #e9eef0; --bg: #141b1f; --card: #1c262b; --line: #2c383e; --sub: #9aa9b1; --acc: #7fd0e0; --on-acc: #0f1a1e; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  main { max-width: 46rem; margin: 0 auto; padding: 2rem 1rem 3rem; }
+  header { display: flex; align-items: center; gap: .9rem; margin-bottom: .6rem; }
+  header img { width: 3rem; height: 3rem; border-radius: 12px; }
+  h1 { font-size: 1.5rem; margin: 0; }
+  p { text-wrap: pretty; }
+  .intro { color: var(--sub); margin: 0 0 1.6rem; }
+  .list { display: grid; gap: .9rem; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 1rem 1.1rem; display: grid; grid-template-columns: 1fr auto; gap: .2rem 1rem; align-items: center;
+  }
+  .name { font-weight: 700; font-size: 1.05rem; margin: 0; }
+  .ver { color: var(--sub); font-weight: 400; font-size: .85rem; margin-left: .4rem; white-space: nowrap; }
+  .site { grid-column: 1; color: var(--acc); font-size: .85rem; margin: 0; }
+  .blurb { grid-column: 1 / -1; margin: .35rem 0 0; }
+  .more { grid-column: 1 / -1; font-size: .85rem; margin: .2rem 0 0; }
+  .more a { color: var(--sub); }
+  .install {
+    grid-column: 2; grid-row: 1 / span 2; text-decoration: none; font-weight: 700;
+    background: var(--acc); color: var(--on-acc); border-radius: 999px; padding: .65rem 1.1rem;
+    min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap;
+  }
+  .install:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+  footer { color: var(--sub); font-size: .85rem; margin-top: 2rem; }
+  footer a { color: var(--sub); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="Roccobot.png" alt="">
+    <h1>Roccobot userscripts</h1>
+  </header>
+  <p class="intro">Install Violentmonkey or Tampermonkey first, then tap Install: the manager opens its own install page, and updates arrive by themselves.</p>
+  <div class="list" id="list"></div>
+  <footer>
+    <p>Source code and full notes on <a href="https://github.com/Roccobot/userscripts">GitHub</a>.</p>
+  </footer>
+</main>
+<script>
+  'use strict';
+  // The one list of scripts: file name, title as in @name, where it works, what it does,
+  // and its section of the README.
+  const SCRIPTS = [
+    { file: 'DIVRoccobot.user.js', name: 'Decent Image Viewer', site: 'Any image opened in the browser',
+      blurb: 'A better viewer for images: fit or real size, zoom with wheel, pinch or keys, pan, a navigator and its own right-click menu. Works on local files and SVG too.',
+      readme: 'decent-image-viewer' },
+    { file: 'QwantRoccobot.user.js', name: 'Qwant Roccobot', site: 'qwant.com',
+      blurb: 'A cleaner Qwant without ads, promos or clutter. Image results open the original file, and on a phone they become a carousel you swipe.',
+      readme: 'qwant-roccobot' },
+    { file: 'PHRoccobot.user.js', name: 'PH Roccobot', site: 'pornhub.com',
+      blurb: 'Keeps the site in English, skips the ad before the video and adds a button that downloads it at the best quality.',
+      readme: 'ph-roccobot' },
+    { file: 'ENFRoccobot.user.js', name: 'ENF Roccobot', site: 'enf-cmnf.cc, enfhub.com, xhamster.com',
+      blurb: 'Download buttons for the videos, and every full-size photo of a post in one ZIP.',
+      readme: 'enf-roccobot' },
+    { file: 'NSFWARoccobot.user.js', name: 'NSFWA Roccobot', site: 'nsfwalbum.com',
+      blurb: 'Real images you can open and save again, and a whole album at full resolution in one ZIP.',
+      readme: 'nsfwa-roccobot' },
+    { file: 'FapopediaRoccobot.user.js', name: 'Fapopedia Roccobot', site: 'fapopedia.net',
+      blurb: 'Every image of a gallery at full resolution, in one ZIP.',
+      readme: 'fapopedia-roccobot' },
+    { file: 'LotRWikiRoccobot.user.js', name: 'LotRWiki Roccobot', site: 'lotr.fandom.com',
+      blurb: 'A lighter Tolkien wiki: no giant background, ads, side rail or oversized footer. The articles stay as they are.',
+      readme: 'lotrwiki-roccobot' }
+  ];
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text) n.textContent = text;
+    return n;
+  }
+
+  // No paragraph line may end on a short word, nor leave a short word alone at the end:
+  // short words are tied to the next one, and the last word to the one before, with a
+  // no-break space (U+00A0).
+  // The lookbehind does not consume the space before a word, so back-to-back short words
+  // ('of a post') are all tied in one pass.
+  const CORTE = /(?<=^|\s)(a|an|the|of|to|in|on|or|and|by|its|at|for|it|is|no|you)\s+/gi;
+  function lega(t) {
+    return t.replace(CORTE, '$1 ').replace(/\s+(\S+)$/, ' $1');
+  }
+  const intro = document.querySelector('.intro');
+  intro.textContent = lega(intro.textContent);
+
+  const list = document.getElementById('list');
+  for (const s of SCRIPTS) {
+    const card = el('article', 'card');
+    const name = el('h2', 'name', s.name);
+    const ver = el('span', 'ver');
+    name.appendChild(ver);
+    const install = el('a', 'install', 'Install');
+    install.href = s.file;
+    install.setAttribute('aria-label', 'Install ' + s.name);
+    const more = el('p', 'more');
+    const link = el('a', '', 'Details');
+    link.href = 'https://github.com/Roccobot/userscripts#' + s.readme;
+    more.appendChild(link);
+    card.append(name, install, el('p', 'site', s.site), el('p', 'blurb', lega(s.blurb)), more);
+    list.appendChild(card);
+    // the version comes from the script itself: one source, never stale
+    fetch(s.file, { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.text() : ''; })
+      .then(function (t) {
+        const m = /@version\s+(\S+)/.exec(t);
+        if (m) ver.textContent = 'v' + m[1];
+      })
+      .catch(function () { /* the card works without the number */ });
+  }
+</script>
+</body>
+</html>
