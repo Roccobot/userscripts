@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Decent Image Viewer
 // @namespace       https://roccobot.github.io/
-// @version         3.2.2
+// @version         3.2.3
 // @description     Decent image viewer for the browser's own image pages, for local files (file:///) and for SVG. Checkerboard background; one-line info panel with format, weight, pixel size and zoom; the image fits the view but never grows past its real size (1:1 with physical pixels), and a click toggles fit and 1:1. Zoom acts on the image only, never on the page: the bare wheel steps through round values and snaps at 100%, from 2% to 4000%; ctrl+wheel and pinch work too; dragging pans, with an overview navigator. Right-click opens its own menu (copy image, copy URL, image search, download, fit, 100/200/400%), and shift+right-click keeps the browser's. 'Image search' hands the image to a reverse image search engine, chosen in the options among Google Lens, Yandex, Bing and TinEye; on a local file, where no engine can reach the image, it copies the picture and opens the engine so it can be pasted. SVG stays vector and exports either as PNG at a chosen DPI or as an SVG stripped of metadata. Keys: A fill-view mode, I wheel direction, N navigator. The Options entry in the manager's menu opens a settings page: interface language (Italian, English or automatic), theme, gestures and export defaults, all kept across script updates.
 // @author          Rocco Casadei, a.k.a. Roccobot
 // @icon            https://roccobot.github.io/userscripts/Roccobot.png
@@ -2271,6 +2271,26 @@
       '.dv-o-ctl select,.dv-o-ctl input[type=number]{font:inherit;font-size:.95rem;color:inherit;background:var(--dv-bg);' +
         'border:1px solid var(--dv-line);border-radius:9px;padding:.35rem .5rem;max-width:15rem}' +
       '.dv-o-ctl input[type=number]{width:6.5rem;text-align:right}' +
+      // Menus align to the right like the number fields (request of 2026-11-02). The value
+      // shown in the closed menu follows text-align-last; the open list is drawn by the system
+      // unless the browser knows the customizable select (Chromium 135 and later), where it
+      // becomes a page element and its choices align right too. Only with a mouse: on a phone
+      // the system picker stays, sized for the finger.
+      '.dv-o-ctl select{text-align:right;text-align-last:right}' +
+      '@supports (appearance:base-select){@media (pointer:fine){' +
+        '.dv-o-ctl select,.dv-o-ctl select::picker(select){appearance:base-select}' +
+        '.dv-o-ctl select{display:inline-flex;align-items:center;justify-content:flex-end;gap:.4rem;white-space:nowrap;cursor:pointer}' +
+        // the list grows to the left from the menu's right edge, so it never leaves the card;
+        // under the menu when there is room, above it otherwise
+        '.dv-o-ctl select::picker(select){position-area:bottom span-left;position-try-fallbacks:flip-block;max-block-size:min(60vh,24rem);margin:4px 0 0;' +
+          'border:1px solid var(--dv-line);border-radius:9px;background:var(--dv-card);' +
+          'color:var(--dv-fg);padding:.3rem 0;box-shadow:0 8px 24px rgba(0,0,0,.18)}' +
+        // the system chevron, drawn with two borders (the customizable select shows a triangle)
+        '.dv-o-ctl select::picker-icon{content:"";width:.42em;height:.42em;border-right:1.5px solid currentColor;' +
+          'border-bottom:1.5px solid currentColor;transform:translateY(-25%) rotate(45deg);margin-left:.2rem}' +
+        '.dv-o-ctl option{justify-content:flex-end;text-align:right;padding:.35rem .8rem;gap:.4rem}' +
+        '.dv-o-ctl option:hover,.dv-o-ctl option:focus-visible{background:var(--dv-bg)}' +
+      '}}' +
       '.dv-o-ctl input[type=checkbox]{width:1.25rem;height:1.25rem;accent-color:var(--dv-acc);margin:0}' +
       '.dv-o-foot{display:flex;align-items:center;gap:1rem;margin-top:1.4rem;flex-wrap:wrap}' +
       '.dv-o-reset{font:inherit;font-size:.9rem;color:inherit;background:var(--dv-card);cursor:pointer;' +

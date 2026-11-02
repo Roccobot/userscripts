@@ -134,6 +134,14 @@ Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul tele
   spostamento del testo informativo) non compaiono, e le descrizioni marcate `keyHint`, che
   nominano solo un tasto, nemmeno. I valori salvati restano. Una voce nuova che agisce solo con
   rotella, trackpad o tastiera prende `desk`.
+- **DIV: le tendine delle opzioni sono allineate a destra, come i campi numerici** (3.2.3, sua
+  richiesta del 2026-11-02). Il valore della tendina chiusa segue `text-align-last`; l'elenco aperto
+  lo disegna il sistema, tranne nei browser con la tendina personalizzabile (`appearance:
+  base-select`, Chromium 135 e successivi), dove diventa un elemento della pagina: lì le scelte
+  sono a destra, l'elenco cresce verso sinistra dal bordo destro della tendina, e il ribaltamento
+  lo apre sopra quando sotto non c'è spazio. Vale solo col mouse (`pointer: fine`): sul telefono
+  resta il selettore del sistema. ⚠️ La tendina personalizzabile manda a capo il testo, quindi
+  vuole `white-space: nowrap`, e mostra un triangolo: la V è disegnata con due bordi.
 - **DIV: il menu dell'immagine si apre con la pressione lunga**, che Chrome per Android consegna
   come evento `contextmenu`; l'utente lo ha visto funzionare sul suo telefono. ⚠️ Il banco non lo
   riproduce: il tocco lungo simulato con `Input.dispatchTouchEvent` non genera `contextmenu` in
