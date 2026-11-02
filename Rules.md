@@ -117,6 +117,19 @@ Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul tele
   come evento `contextmenu`; l'utente lo ha visto funzionare sul suo telefono. ⚠️ Il banco non lo
   riproduce: il tocco lungo simulato con `Input.dispatchTouchEvent` non genera `contextmenu` in
   Chromium senza finestra, quindi la prova apre il menu con l'evento.
+- ⚠️ **DIV lavora su una COPIA dell'`<img>` della pagina d'immagine del browser** (dalla 3.2.1,
+  2026-11-02): la pagina d'immagine di Chrome tiene il suo elemento e ne riscrive tutto lo stile
+  quando vuole, e sul telefono lo fa quando le dita si alzano dopo un pizzico. Era il difetto
+  segnalato dall'utente (*lo zoom sembra aggiornarsi sul momento ma poi torna quello iniziale*):
+  misurato nel Pixel 7 emulato, la pillola diceva 333% e l'immagine tornava a 1.200 px, la sua
+  misura. La copia, messa al posto dell'originale, è fuori dalla sua portata; la misura reale si
+  legge dall'originale, già caricato. Il pizzico si prova con due tocchi CDP
+  (`Input.dispatchTouchEvent`), leggendo la larghezza dell'immagine dopo che le dita si alzano.
+- **Pagina delle opzioni: una tendina non si allarga oltre la sua riga** (3.2.1): la larghezza
+  propria di un `select` è quella della sua scelta più lunga, e non si restringe sotto di lei; con
+  la riga spinta a destra, `Trackpad e mouse` usciva dal bordo sinistro. Sul telefono le tendine
+  hanno `flex: 1 1 0`, `min-width: 0` e `width: 100%`, e il banco controlla che ogni tendina resti
+  dentro la sua riga.
 - **NSFWA: sul telefono le esche si tolgono al `pointerdown` del dito**, perché il browser sceglie
   il bersaglio della pressione lunga quando il dito si appoggia, prima del `contextmenu`.
 - ⚠️ **Il banco con Playwright inganna con le schermate a pagina intera**: `fullPage: true`
