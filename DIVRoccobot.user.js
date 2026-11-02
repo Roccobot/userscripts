@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Decent Image Viewer
 // @namespace       https://roccobot.github.io/
-// @version         3.2.4
+// @version         3.2.5
 // @description     Decent image viewer for the browser's own image pages, for local files (file:///) and for SVG. Checkerboard background; one-line info panel with format, weight, pixel size and zoom; the image fits the view but never grows past its real size (1:1 with physical pixels), and a click toggles fit and 1:1. Zoom acts on the image only, never on the page: the bare wheel steps through round values and snaps at 100%, from 2% to 4000%; ctrl+wheel and pinch work too; dragging pans, with an overview navigator. Right-click opens its own menu (copy image, copy URL, image search, download, fit, 100/200/400%), and shift+right-click keeps the browser's. 'Image search' hands the image to a reverse image search engine, chosen in the options among Google Lens, Yandex, Bing and TinEye; on a local file, where no engine can reach the image, it copies the picture and opens the engine so it can be pasted. SVG stays vector and exports either as PNG at a chosen DPI or as an SVG stripped of metadata. Keys: A fill-view mode, I wheel direction, N navigator. The Options entry in the manager's menu opens a settings page: interface language (Italian, English or automatic), theme, gestures and export defaults, all kept across script updates.
 // @author          Rocco Casadei, a.k.a. Roccobot
 // @icon            https://roccobot.github.io/userscripts/Roccobot.png
@@ -155,14 +155,14 @@
       oItalian: 'Italiano',
       oEnglish: 'English',
       oLang: 'Language',
-      oLangD: 'Automatic: the browser\'s language.',
+      oLangD: 'Automatic = the browser\'s language.',
       oAuto: 'Automatic',
       oBgType: 'Background',
       oBgTypeD: 'Background for transparent images.',
       oChecker: 'Checkerboard',
       oSolid: 'Solid color',
       oBgTheme: 'Background theme',
-      oBgThemeD: 'Automatic: the browser\'s theme.',
+      oBgThemeD: 'Automatic = the browser\'s theme.',
       oAutoTheme: 'Automatic',
       oLight: 'Light',
       oDark: 'Dark',
@@ -255,14 +255,14 @@
       oItalian: 'Italiano',
       oEnglish: 'English',
       oLang: 'Lingua',
-      oLangD: 'Automatica: lingua del browser.',
+      oLangD: 'Automatica = lingua del browser.',
       oAuto: 'Automatica',
       oBgType: 'Sfondo',
       oBgTypeD: 'Sfondo per le immagini trasparenti.',
       oChecker: 'Scacchiera',
       oSolid: 'Colore uniforme',
       oBgTheme: 'Tema dello sfondo',
-      oBgThemeD: 'Automatico: tema del browser.',
+      oBgThemeD: 'Automatico = tema del browser.',
       oAutoTheme: 'Automatico',
       oLight: 'Chiaro',
       oDark: 'Scuro',
