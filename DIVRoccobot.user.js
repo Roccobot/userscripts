@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Decent Image Viewer
 // @namespace       https://roccobot.github.io/
-// @version         3.2.1
+// @version         3.2.2
 // @description     Decent image viewer for the browser's own image pages, for local files (file:///) and for SVG. Checkerboard background; one-line info panel with format, weight, pixel size and zoom; the image fits the view but never grows past its real size (1:1 with physical pixels), and a click toggles fit and 1:1. Zoom acts on the image only, never on the page: the bare wheel steps through round values and snaps at 100%, from 2% to 4000%; ctrl+wheel and pinch work too; dragging pans, with an overview navigator. Right-click opens its own menu (copy image, copy URL, image search, download, fit, 100/200/400%), and shift+right-click keeps the browser's. 'Image search' hands the image to a reverse image search engine, chosen in the options among Google Lens, Yandex, Bing and TinEye; on a local file, where no engine can reach the image, it copies the picture and opens the engine so it can be pasted. SVG stays vector and exports either as PNG at a chosen DPI or as an SVG stripped of metadata. Keys: A fill-view mode, I wheel direction, N navigator. The Options entry in the manager's menu opens a settings page: interface language (Italian, English or automatic), theme, gestures and export defaults, all kept across script updates.
 // @author          Rocco Casadei, a.k.a. Roccobot
 // @icon            https://roccobot.github.io/userscripts/Roccobot.png
@@ -2228,12 +2228,12 @@
         { k: 'dv-similar',    l: 'oSimilar',   d: 'oSimilarD', labels: { lens: 'oLens', yandex: 'oYandex', bing: 'oBing', tineye: 'oTineye' } }
       ] },
       { g: 'oGrpZoom', rows: [
-        { k: 'dv-wheel-mode',  l: 'oPointer',      d: 'oPointerD', labels: { auto: 'oPointerZoom', scroll: 'oPointerHybrid', never: 'oPointerPan' } },
-        { k: 'dv-wheel-up-in', l: 'oInvertScroll',  d: 'oInvertScrollD', negated: true },
-        { k: 'dv-fit-grow',    l: 'oGrowSmall',     d: 'oGrowSmallD' },
-        { k: 'dv-navigator',   l: 'oShowNav',      d: 'oShowNavD' },
-        { k: 'dv-zoom-sens',   l: 'oSensGesture',  d: 'oSensGestureD', guard: 'default' },
-        { k: 'dv-touch-sens',  l: 'oSensScroll',   d: 'oSensScrollD',  guard: 'default' },
+        { k: 'dv-wheel-mode',  l: 'oPointer',      d: 'oPointerD',      desk: true, labels: { auto: 'oPointerZoom', scroll: 'oPointerHybrid', never: 'oPointerPan' } },
+        { k: 'dv-wheel-up-in', l: 'oInvertScroll',  d: 'oInvertScrollD', negated: true, desk: true },
+        { k: 'dv-fit-grow',    l: 'oGrowSmall',     d: 'oGrowSmallD',    keyHint: true },
+        { k: 'dv-navigator',   l: 'oShowNav',      d: 'oShowNavD',      keyHint: true },
+        { k: 'dv-zoom-sens',   l: 'oSensGesture',  d: 'oSensGestureD', guard: 'default', desk: true },
+        { k: 'dv-touch-sens',  l: 'oSensScroll',   d: 'oSensScrollD',  guard: 'default', desk: true },
         { k: 'dv-zoom-max',    l: 'oMaxZoom',    d: 'oMaxZoomD' }
       ] },
       { g: 'oGrpExport', rows: [
@@ -2241,7 +2241,7 @@
         { k: 'dv-copy-dpi', l: 'oDpiCopy', d: 'oDpiCopyD' }
       ] },
       { g: 'oGrpOther', rows: [
-        { k: 'dv-nudge-y', l: 'oNudge', d: 'oNudgeD', guard: 'edit' }
+        { k: 'dv-nudge-y', l: 'oNudge', d: 'oNudgeD', guard: 'edit', desk: true }
       ] }
     ];
 
@@ -2351,10 +2351,18 @@
     if (version) root.appendChild(node('p', 'dv-o-ver', 'v' + version));
     root.appendChild(node('p', 'dv-o-sub', T('oSubtitle')));
 
+    // On a touch-first device (choice Telefono-01 of 2026-11-02) the rows marked `desk` are left
+    // out, because the finger never reaches them: wheel and trackpad mode, wheel direction, the
+    // two trackpad sensitivities (the pinch uses neither) and the nudge of the info text, which
+    // only matters at custom browser zoom levels. The descriptions marked `keyHint` only name a
+    // key, and a phone has no keyboard. The settings keep their values: nothing is reset.
+    const dito = matchMedia('(pointer: coarse)').matches;
     PANEL.forEach(function (group) {
+      const rows = group.rows.filter(function (r) { return !(dito && r.desk); });
+      if (!rows.length) return;
       const box = node('div', 'dv-o-grp');
       box.appendChild(node('div', 'dv-o-gt', T(group.g)));
-      group.rows.forEach(function (r) {
+      rows.forEach(function (r) {
         const o = optByKey(r.k);
         if (!o) return;
         const row = node('div', 'dv-o-row');
@@ -2362,7 +2370,7 @@
         const lab = node('label', 'dv-o-l', T(r.l));
         lab.setAttribute('for', 'opt-' + r.k);
         txt.appendChild(lab);
-        if (r.d) txt.appendChild(richText(node('span', 'dv-o-d'), T(r.d)));
+        if (r.d && !(dito && r.keyHint)) txt.appendChild(richText(node('span', 'dv-o-d'), T(r.d)));
         row.appendChild(txt);
 
         const ctl = node('div', 'dv-o-ctl');

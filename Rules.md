@@ -101,15 +101,13 @@ Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul tele
 - **Le pillole di scaricamento vanno in basso a sinistra** (scelta Pillola-01) e sono alte
   almeno **44 px**; il margine in basso somma `env(safe-area-inset-bottom)`. Sul desktop restano
   in basso a destra, com'erano. Uno script nuovo con una pillola segue la stessa regola.
-- ⚠️ **Il margine in basso somma anche la barra degli indirizzi, con `100lvh - 100dvh`** (dalla
-  1.12.0 di PH, 2026-11-01: sul telefono dell'utente la pillola di PH compariva solo scorrendo
-  fino in fondo). Nei browser con la barra in basso, `position: fixed` misura dal fondo della
-  finestra **grande**, cioè quella a barra nascosta, e la barra copre la pillola finché non si
-  ritira. `100lvh - 100dvh` vale l'altezza della barra mentre è visibile e zero quando si
-  ritira, quindi la pillola sale e scende con lei. Il calcolo si applica solo dove il browser
-  conosce `dvh` (`CSS.supports`), e vale per le quattro pillole (PH, ENF, Fapopedia, NSFWA).
-  ⚠️ **Non è bastato**: con la 1.12.0 l'utente non vedeva più la pillola di PH nemmeno scorrendo
-  (2026-11-02).
+- ⚠️ **Niente margine per la barra degli indirizzi: le pillole stanno a 16 px dal fondo** (scelta
+  Pillola-01 dell'utente, 2026-11-02). Dalla 1.12.0 di PH le quattro pillole sommavano al margine
+  `100lvh - 100dvh`, l'altezza della barra quando è visibile, per la pillola che l'utente vedeva solo
+  scorrendo fino in fondo. La causa era un'altra, la posizione nell'albero (voci qui sotto), e su
+  Quetta, che tiene già gli elementi fissi sopra la barra, la pillola saliva due volte. Tolto in
+  PH 1.12.3, ENF 1.6.2, Fapopedia 1.3.2 e NSFWA 1.2.2; non si rimette senza una misura sul
+  telefono.
 - **Dalla 1.12.1 la pillola di PH vive nel livello più alto del browser** (un `popover` manuale,
   aperto con `showPopover()`): là nessuno `z-index` del sito la copre, e nessun `transform`,
   `filter` o `contain` su un antenato trasforma `position: fixed` in 'fissa in fondo alla
@@ -130,6 +128,12 @@ Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul tele
 - **Ogni comando toccabile misura almeno 44 px** (voci del menu e tondi della pillola di DIV,
   caselle, tasti e campi dei pannelli); i tasti delle scorciatoie nel menu di DIV si nascondono,
   perché sul telefono non c'è una tastiera.
+- **DIV: sul telefono il pannello delle opzioni mostra solo le voci che il dito raggiunge** (3.2.2,
+  scelta Telefono-01 dell'utente, 2026-11-02): le righe marcate `desk` in `PANEL` (modo di trackpad e
+  mouse, verso della rotella, le due sensibilità del trackpad, che il pizzico non usa, e lo
+  spostamento del testo informativo) non compaiono, e le descrizioni marcate `keyHint`, che
+  nominano solo un tasto, nemmeno. I valori salvati restano. Una voce nuova che agisce solo con
+  rotella, trackpad o tastiera prende `desk`.
 - **DIV: il menu dell'immagine si apre con la pressione lunga**, che Chrome per Android consegna
   come evento `contextmenu`; l'utente lo ha visto funzionare sul suo telefono. ⚠️ Il banco non lo
   riproduce: il tocco lungo simulato con `Input.dispatchTouchEvent` non genera `contextmenu` in

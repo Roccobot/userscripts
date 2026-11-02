@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ENF Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.6.1
+// @version      1.6.2
 // @description  Adds a Download button to enf-cmnf.cc, enfhub.com and xhamster.com that saves the page's videos. On enf-cmnf.cc photo posts a second button packs every full-size image of the post into a single ZIP, built in the script itself with no external library: it takes the widest srcset candidate, retries the un-resized WordPress original (the -800x600 suffix hides a bigger file), skips avatars, icons and thumbnails from the sidebars, downloads a few images at a time and lists the failed ones once at the end. On xhamster it also forces the English site (no language subdomain) and picks the highest resolution on its own, asking only when the same resolution comes in more than one codec. Covers every player the two sites use: direct MP4 (<source> or <video src>), self-hosted HLS on cdn.enf-cmnf.cc, and enfhub's HLS (master.m3u8, read from the player or derived from the poster); HLS is fetched segment by segment and joined into one .ts file. On forum threads it opens a picker that lists the videos in page order with a thumbnail, the post number and the author, lets you tick several of them and downloads them one after the other, writing the post number into each filename. Progress on the button, second click cancels.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -1292,10 +1292,7 @@
   // buttons and picker move to the left side, and every control grows to a finger-sized target.
   var TOUCH = matchMedia('(pointer: coarse)').matches;
   var LATO = TOUCH ? 'left' : 'right';
-  // A bottom address bar covers that corner until scrolling hides it: 100lvh - 100dvh is the bar's
-  // height while it shows and 0 once it hides (the same rule as PH Roccobot, where it was reported).
-  var BARRA = CSS.supports('height', '100dvh') ? ' + 100lvh - 100dvh' : '';
-  var BASSO = 'calc(16px + env(safe-area-inset-bottom, 0px)' + BARRA + ')';
+  var BASSO = 'calc(16px + env(safe-area-inset-bottom, 0px))';
 
   function stile(el, css) { for (var k in css) el.style.setProperty(k, css[k], 'important'); }
 
@@ -1402,7 +1399,7 @@
     // ⚠️ Measured, not a constant: with two buttons the strip is twice as tall,
     // and a hard-coded 64px would drop the picker on top of the images button.
     var barraEl = document.getElementById(ID_BARRA);
-    var sopra = 'calc(' + ((barraEl ? barraEl.offsetHeight : 44) + 24) + 'px + env(safe-area-inset-bottom, 0px)' + BARRA + ')';
+    var sopra = 'calc(' + ((barraEl ? barraEl.offsetHeight : 44) + 24) + 'px + env(safe-area-inset-bottom, 0px))';
 
     var m = document.createElement('div');
     m.id = ID_ELENCO;

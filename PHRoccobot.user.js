@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PH Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.12.2
+// @version      1.12.3
 // @description  On pornhub.com: keeps the site in English and Worldwide by rewriting the lang=en and overwriteCCVal=world cookies on every load (PH resets them to Italian now and then), and redirects the language subdomains (it.pornhub.com and so on) to www.pornhub.com so titles are never translated. Adds an always-visible download button at the bottom right: highest MP4 quality available; progress on the button; second click cancels; file named '[Channel] Title.mp4'; source read at runtime from flashvars/mediaDefinitions. Skips the video ad the player shows before playback. Also cleans up the page: removes the Google sign-in popup, hides the 'Click here to watch the full scene' overlay on the player and the AI assistant button in the header, and makes every link to another video page open in a new tab.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -552,14 +552,11 @@
       // the pill moves to the bottom-left corner and grows to a finger-sized target (44 px tall).
       const touch = matchMedia('(pointer: coarse)').matches;
       // stili con !important: il CSS di PornHub non può nasconderlo/spostarlo
-      // On a phone whose browser keeps its address bar at the bottom, the bar covers that corner
-      // until scrolling hides it (reported on 2026-11-01: the pill showed only after scrolling down).
-      // 100lvh - 100dvh is the bar's height while it shows and 0 once it hides, so the pill rides
-      // just above it; on a desktop the two are equal and nothing changes. Browsers without the
-      // dynamic units keep the plain distance.
-      const basso = CSS.supports('height', '100dvh')
-        ? 'calc(16px + env(safe-area-inset-bottom, 0px) + 100lvh - 100dvh)'
-        : 'calc(16px + env(safe-area-inset-bottom, 0px))';
+      // No extra lift for the address bar: from 1.12.0 to 1.12.2 the pill added 100lvh - 100dvh,
+      // and on Quetta, whose fixed elements already sit above the bar, it rose twice (reported on
+      // 2026-11-02, choice Pillola-01). The pill hidden until the end of the page came from its
+      // place in the tree, solved below.
+      const basso = 'calc(16px + env(safe-area-inset-bottom, 0px))';
       const st = {
         'position': 'fixed', 'bottom': basso, 'top': 'auto',
         [touch ? 'left' : 'right']: '16px', [touch ? 'right' : 'left']: 'auto', 'z-index': '2147483647',

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NSFWA Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.2.1
+// @version      1.2.2
 // @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the real image becomes clickable again, so open-image and save-image reach the actual imx.to file; #zoom is forced visible and on top, and the SVG and lens decoys over it are neutralized, hidden #zoom included. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -272,12 +272,7 @@
       // the pill moves to the bottom-left corner and grows to a finger-sized target (44 px tall).
       const touch = matchMedia('(pointer: coarse)').matches;
       Object.assign(b.style, {
-        // A bottom address bar covers that corner until scrolling hides it: 100lvh - 100dvh is the
-        // bar's height while it shows and 0 once it hides (the same rule as PH Roccobot).
-        position: 'fixed', zIndex: '2147483647',
-        bottom: CSS.supports('height', '100dvh')
-          ? 'calc(16px + env(safe-area-inset-bottom, 0px) + 100lvh - 100dvh)'
-          : 'calc(16px + env(safe-area-inset-bottom, 0px))',
+        position: 'fixed', zIndex: '2147483647', bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
         [touch ? 'left' : 'right']: '16px',
         padding: touch ? '15px 14px' : '10px 14px', borderRadius: '999px', border: 'none',
         background: '#c2185b', color: '#fff',
