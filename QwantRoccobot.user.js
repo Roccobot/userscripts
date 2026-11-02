@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Qwant Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      2.21.0
-// @description  Declutters Qwant and opens image results on the original file. Home page: only the logo and a bare search field (no tagline, no placeholder, no search button, nothing below; Enter searches). Home page and results page: the official logo instead of event doodles; no left sidebar, footer, promo cards, options/filters button or ads (in-line data-testid adResult, advertiser cards with their vendor badge, image and call to action, and right column); fixed search parameters per tab, applied from the home page in a single load (Enter, the search button or a suggestion go straight to the final URL); the Filters button shown on image search; no image preview strip on web search; and, behind an experimental flag, result links rewritten to skip the fdn.qwant.com tracking redirect. Image search: a click opens the original file, taken from the React state already in the page or else from the thumbnail URL, which matters now that Qwant serves Bing thumbnails that cannot be reversed; when neither works, the click is left untouched. That module makes no network request and runs only on the Images tab, because its global listeners on web search used to trip Qwant's anti-bot (403).
+// @version      2.22.0
+// @description  Declutters Qwant and opens image results on the original file. Home page: only the logo and a bare search field (no tagline, no placeholder, no search button, nothing below; Enter searches). Home page and results page: the official logo instead of event doodles; no left sidebar, footer, promo cards, options/filters button or ads (in-line data-testid adResult, advertiser cards with their vendor badge, image and call to action, and right column); fixed search parameters per tab, applied from the home page in a single load (Enter, the search button or a suggestion go straight to the final URL); the Filters button shown on image search; no image preview strip on web search; and, behind an experimental flag, result links rewritten to skip the fdn.qwant.com tracking redirect. Image search: a click opens the original file, taken from the React state already in the page or else from the thumbnail URL, which matters now that Qwant serves Bing thumbnails that cannot be reversed; when neither works, the click is left untouched. On a phone (touch as the main pointer) the image results become a full-screen carousel, horizontal or vertical (a button switches, and the choice is remembered), with the picture's width × height in a corner: swiping browses, more results load near the end, and a single tap opens the original. That module makes no network request and runs only on the Images tab, because its global listeners on web search used to trip Qwant's anti-bot (403).
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://www.qwant.com/*
@@ -34,6 +34,10 @@
   // false = lo apre nella scheda corrente.
   const APRI_IN_NUOVA_SCHEDA = true;
   const IMMAGINI_DIRETTE = true;    // false = disattiva del tutto il modulo immagini (solo pulizia)
+  // Telefono (dito come puntatore): i risultati immagini diventano un carosello a tutto
+  // schermo, con le dimensioni in un angolo; il tocco singolo apre l'originale. Il verso
+  // (orizzontale o verticale) si cambia dal tasto del carosello e resta ricordato.
+  const CAROSELLO_TELEFONO = true;
   // -- Ricerca web --
   // Riscrive i link dei risultati per saltare il redirect di tracking di Qwant
   // (fdn.qwant.com/v3/r/), che con l'anti-tracking attivo dà ERR_TUNNEL_CONNECTION_FAILED.
@@ -554,6 +558,19 @@
 
     // Memoria miniatura → originale (popolata solo da dati DOM/HTML, mai da rete)
     const mediaPerMiniatura = new Map();
+    // Original's size as the result data declares it (media URL -> [width, height]): shown in
+    // the phone carousel until the original itself has loaded and says its real size.
+    const dimPerMedia = new Map();
+    function numero(o, chiavi) {
+      for (const k of chiavi) { const v = Number(o[k]); if (v > 0 && isFinite(v)) return Math.round(v); }
+      return 0;
+    }
+    function ricordaDim(o, media) {
+      if (!o || typeof media !== 'string' || !media) return;
+      const w = numero(o, ['width', 'media_width', 'mediaWidth', 'originalWidth']);
+      const h = numero(o, ['height', 'media_height', 'mediaHeight', 'originalHeight']);
+      if (w && h) dimPerMedia.set(media, [w, h]);
+    }
     let bypass = false;
 
     function chiave(u) {
@@ -609,6 +626,7 @@
       if (typeof nodo.media === 'string' && nodo.media) {
         if (typeof nodo.thumbnail === 'string') ricorda(nodo.thumbnail, nodo.media);
         ricorda(nodo.media, nodo.media);
+        ricordaDim(nodo, nodo.media);
       }
       const valori = Array.isArray(nodo) ? nodo : Object.values(nodo);
       for (const v of valori) raccogli(v, prof + 1);
@@ -658,8 +676,8 @@
         if (w && IMG_EXT.test(w)) media = w;
       }
       if (media && !isThumbHost(media)) {
-        if (thumb && thumb !== media) return { media: media, thumbnail: thumb };
-        if (IMG_EXT.test(media)) return { media: media, thumbnail: '' };
+        if (thumb && thumb !== media) return { media: media, thumbnail: thumb, dati: o };
+        if (IMG_EXT.test(media)) return { media: media, thumbnail: '', dati: o };
       }
       const valori = Array.isArray(o) ? o : Object.values(o);
       for (const v of valori) {
@@ -698,6 +716,7 @@
         if (trovato) {
           if (trovato.thumbnail) ricorda(trovato.thumbnail, trovato.media);
           ricorda(img.currentSrc || img.src, trovato.media);
+          ricordaDim(trovato.dati, trovato.media);
           img.dataset.rbfib = '1';
         }
       }
@@ -785,6 +804,7 @@
         if ((aux && e.button !== 1) || (!aux && e.button !== 0)) return;
         const t = e.target instanceof Element ? e.target : null;
         if (!t) return;
+        if (t.closest('#qr-car, #qr-car-riapri')) return; // il carosello apre da sé
 
         const trovato = trovaMedia(t);
         if (!trovato) return; // originale non ricavabile → clic normale di Qwant (nessun danno)
@@ -815,6 +835,7 @@
       if (!attivo || !document.body) return;
       scansionaFiber(); // legge dallo stato React i media non ricavabili dalla miniatura Bing
       for (const img of document.images) {
+        if (img.closest('#qr-car')) continue;
         const m = mediaPerImg(img);
         if (!m) continue;
         const a = img.closest('a');
@@ -825,7 +846,220 @@
         }
         if (!img.title) img.title = 'Click: opens the original image';
       }
+      carosello.aggiorna();
     }
+
+    // ── Carosello sul telefono (dalla 2.22.0) ────────────────────────────
+    // Request of 2026-11-02: on the phone the image results become a carousel, horizontal or
+    // vertical, with the size in a corner; swiping browses, and only a single tap on a picture
+    // opens its direct link. Everything comes from what the module above already knows (the
+    // thumbnail on the page and its original), so no request is made to Qwant. The carousel is
+    // an overlay of its own: Qwant's grid stays untouched underneath, and when the last pictures
+    // come into view the page below is scrolled to its end, so that Qwant loads the next ones
+    // as it does for a finger. Every original is loaded only near the picture on screen; until
+    // then the thumbnail shows, with the size the result data declares, and once loaded the
+    // corner shows the size the file really has. The direction lives in Qwant's localStorage
+    // (`qr-carosello`), a per-device convenience.
+    const carosello = (function () {
+      const nulla = { avvia: function () {}, ferma: function () {}, aggiorna: function () {} };
+      if (!CAROSELLO_TELEFONO) return nulla;
+      let box = null, nastro = null, conta = null, tastoVerso = null, riapri = null;
+      let chiuso = false, acceso = false, corrente = 0, osservaVista = null, osservaVicino = null;
+      const voci = [], diapositive = [], visti = new Set();
+      let verso = 'h';
+      try { if (localStorage.getItem('qr-carosello') === 'v') verso = 'v'; } catch (e) { /* storage off */ }
+
+      function telefono() { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } }
+      function el(tag, cls) { const n = document.createElement(tag); if (cls) n.className = cls; return n; }
+      function dimTesto(d) { return d ? d[0] + ' × ' + d[1] : ''; }
+
+      function stile() {
+        if (document.getElementById('qr-car-stile')) return;
+        const st = el('style');
+        st.id = 'qr-car-stile';
+        st.textContent =
+          '#qr-car{position:fixed;inset:0;z-index:2147483646;background:#000;color:#fff;' +
+            'font:600 14px/1 system-ui,-apple-system,sans-serif}' +
+          '#qr-car .qr-car-n{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;' +
+            'scroll-snap-type:x mandatory;overscroll-behavior:contain;scrollbar-width:none}' +
+          '#qr-car .qr-car-n::-webkit-scrollbar{display:none}' +
+          '#qr-car.qr-car-v .qr-car-n{flex-direction:column;overflow-x:hidden;overflow-y:auto;scroll-snap-type:y mandatory}' +
+          '#qr-car .qr-car-s{position:relative;flex:0 0 100%;width:100%;height:100%;scroll-snap-align:start;' +
+            'scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;overflow:hidden}' +
+          '#qr-car .qr-car-i{display:block;max-width:100%;max-height:100%;object-fit:contain;-webkit-user-drag:none;user-select:none}' +
+          '#qr-car .qr-car-px{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));' +
+            'padding:7px 11px;border-radius:999px;background:rgba(0,0,0,.62);pointer-events:none;white-space:nowrap}' +
+          '#qr-car .qr-car-px:empty{display:none}' +
+          '#qr-car .qr-car-b{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;' +
+            'display:flex;align-items:center;gap:8px;pointer-events:none}' +
+          '#qr-car .qr-car-c{margin-right:auto;padding:7px 11px;border-radius:999px;background:rgba(0,0,0,.62);white-space:nowrap}' +
+          '#qr-car button,#qr-car-riapri{pointer-events:auto;min-width:44px;height:44px;border:0;border-radius:999px;' +
+            'background:rgba(0,0,0,.62);color:#fff;font:600 18px/1 system-ui,-apple-system,sans-serif;padding:0 12px;cursor:pointer}' +
+          '#qr-car-riapri{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));' +
+            'z-index:2147483646;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.4)}';
+        (document.head || document.documentElement).appendChild(st);
+      }
+
+      function aggiornaConta() {
+        if (conta) conta.textContent = (corrente + 1) + ' / ' + voci.length;
+      }
+      function mettiVerso() {
+        box.classList.toggle('qr-car-v', verso === 'v');
+        // the button shows the direction it switches to
+        tastoVerso.textContent = verso === 'v' ? '⇆' : '⇅';
+        tastoVerso.setAttribute('aria-label', verso === 'v' ? 'Horizontal carousel' : 'Vertical carousel');
+      }
+      function vaiA(i) {
+        const s = diapositive[i];
+        if (s) nastro.scrollTo(verso === 'v' ? { top: s.offsetTop } : { left: s.offsetLeft });
+      }
+
+      // The original replaces the thumbnail only once it has loaded; a site that refuses it
+      // leaves the thumbnail and the declared size.
+      function caricaOriginale(s) {
+        if (s.dataset.orig) return;
+        s.dataset.orig = '1';
+        const v = voci[Number(s.dataset.i)];
+        const vero = new Image();
+        vero.referrerPolicy = 'no-referrer';
+        vero.decoding = 'async';
+        vero.onload = function () {
+          const im = s.querySelector('.qr-car-i');
+          if (im) im.src = vero.src;
+          s.querySelector('.qr-car-px').textContent = dimTesto([vero.naturalWidth, vero.naturalHeight]);
+        };
+        vero.src = v.media;
+      }
+
+      // Qwant loads more results when its page reaches the end: the page under the overlay is
+      // scrolled there when the last three pictures come close.
+      function chiediAltri() {
+        try { window.scrollTo(0, document.documentElement.scrollHeight); } catch (e) {}
+      }
+
+      function costruisci() {
+        stile();
+        box = el('div');
+        box.id = 'qr-car';
+        nastro = el('div', 'qr-car-n');
+        const barra = el('div', 'qr-car-b');
+        conta = el('span', 'qr-car-c');
+        tastoVerso = el('button');
+        tastoVerso.type = 'button';
+        const chiudi = el('button');
+        chiudi.type = 'button';
+        chiudi.textContent = '✕';
+        chiudi.setAttribute('aria-label', 'Close the carousel');
+        barra.append(conta, tastoVerso, chiudi);
+        box.append(nastro, barra);
+        tastoVerso.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const qui = corrente;
+          verso = verso === 'v' ? 'h' : 'v';
+          try { localStorage.setItem('qr-carosello', verso); } catch (err) {}
+          mettiVerso();
+          vaiA(qui);
+        });
+        chiudi.addEventListener('click', function (e) {
+          e.stopPropagation();
+          chiuso = true;
+          mostra();
+        });
+        mettiVerso();
+        osservaVista = new IntersectionObserver(function (voci2) {
+          for (const x of voci2) {
+            if (x.intersectionRatio < 0.6) continue;
+            corrente = Number(x.target.dataset.i);
+            aggiornaConta();
+            if (corrente >= voci.length - 3) chiediAltri();
+          }
+        }, { root: nastro, threshold: 0.6 });
+        osservaVicino = new IntersectionObserver(function (voci2) {
+          for (const x of voci2) if (x.isIntersecting) caricaOriginale(x.target);
+        }, { root: nastro, rootMargin: '100%' });
+        riapri = el('button');
+        riapri.id = 'qr-car-riapri';
+        riapri.type = 'button';
+        riapri.textContent = '▶ Carousel';
+        riapri.addEventListener('click', function (e) {
+          e.stopPropagation();
+          chiuso = false;
+          mostra();
+        });
+      }
+
+      function aggiungi(v) {
+        const i = voci.length;
+        voci.push(v);
+        const s = el('div', 'qr-car-s');
+        s.dataset.i = String(i);
+        const im = el('img', 'qr-car-i');
+        im.alt = '';
+        im.decoding = 'async';
+        im.referrerPolicy = 'no-referrer';
+        im.draggable = false;
+        im.src = v.thumb || v.media;
+        const px = el('span', 'qr-car-px');
+        px.textContent = dimTesto(dimPerMedia.get(v.media));
+        s.append(im, px);
+        // a swipe scrolls and never ends in a click: a click here is a single tap
+        s.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          apri(v.media, e);
+        });
+        nastro.appendChild(s);
+        diapositive.push(s);
+        osservaVista.observe(s);
+        osservaVicino.observe(s);
+      }
+
+      function mostra() {
+        if (!box || !document.body) return;
+        const su = acceso && !chiuso && voci.length > 0;
+        if (su && !box.isConnected) {
+          document.body.appendChild(box);
+          vaiA(corrente);
+        }
+        if (!su && box.isConnected) box.remove();
+        const pulsante = acceso && chiuso && voci.length > 0;
+        if (pulsante && !riapri.isConnected) document.body.appendChild(riapri);
+        if (!pulsante && riapri.isConnected) riapri.remove();
+      }
+
+      function aggiorna() {
+        if (!acceso) return;
+        for (const img of document.images) {
+          if (img.closest('#qr-car')) continue;
+          const m = mediaPerImg(img);
+          if (!m || visti.has(m)) continue;
+          visti.add(m);
+          aggiungi({ media: m, thumb: img.currentSrc || img.src });
+        }
+        aggiornaConta();
+        mostra();
+      }
+
+      return {
+        avvia: function () {
+          if (!telefono()) return;
+          if (!box) costruisci();
+          acceso = true;
+          aggiorna();
+        },
+        ferma: function () {
+          acceso = false;
+          chiuso = false;
+          corrente = 0;
+          voci.length = 0;
+          visti.clear();
+          for (const s of diapositive) { osservaVista.unobserve(s); osservaVicino.unobserve(s); s.remove(); }
+          diapositive.length = 0;
+          if (box) mostra();
+        },
+        aggiorna: aggiorna
+      };
+    })();
 
     // ── Attivazione SOLO sulla scheda Immagini (?t=images) ────────────────
     // Perché: i listener/observer di questo modulo, se attivi sulla ricerca
@@ -842,14 +1076,22 @@
       attivo = true;
       document.addEventListener('click', alClic, true);
       document.addEventListener('auxclick', alClic, true);
-      try {
-        osservatore = new MutationObserver(riscriviPresto);
-        osservatore.observe(document.documentElement, {
-          subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'srcset']
-        });
-      } catch (e) { /* ignora */ }
-      raccogliDagliScript();
-      riscriviTutto();
+      // At document-start <html> may not exist yet, and observing null throws: the observer
+      // then never started and the grid was read once, before it existed (measured on
+      // 2026-11-02 with the script injected at document-start: no link rewritten). Hence the
+      // guard, as in the rest of the script.
+      alDocumento(function () {
+        if (!attivo || osservatore) return;
+        try {
+          osservatore = new MutationObserver(riscriviPresto);
+          osservatore.observe(document.documentElement, {
+            subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'srcset']
+          });
+        } catch (e) { /* ignora */ }
+        raccogliDagliScript();
+        carosello.avvia();
+        riscriviTutto();
+      });
     }
     function disattiva() {
       if (!attivo) return;
@@ -857,6 +1099,7 @@
       document.removeEventListener('click', alClic, true);
       document.removeEventListener('auxclick', alClic, true);
       if (osservatore) { try { osservatore.disconnect(); } catch (e) {} osservatore = null; }
+      carosello.ferma();
     }
     function suRicercaImmagini() {
       try { return new URLSearchParams(location.search).get('t') === 'images'; }

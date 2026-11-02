@@ -473,6 +473,32 @@ vanno direttamente all'indirizzo completo (`dallaHome`, nel modulo 0).
   `[role="option"]` con la parola in `aria-label`, `#submit-button`), resta il ricaricamento di
   prima: niente si rompe.
 
+⚠️⚠️ **E DALLA `2.22.0` SUL TELEFONO LE IMMAGINI SONO UN CAROSELLO** (`Carosello`, sua richiesta
+del 2026-11-02: un carosello orizzontale o verticale, con larghezza × altezza in un angolo, che si
+sfoglia, e solo il tocco singolo apre il link diretto).
+
+- **È un riquadro sopra la pagina, non la griglia di Qwant trasformata**: la griglia resta com'è
+  sotto, e il carosello prende le voci da ciò che il modulo immagini già sa (la miniatura in pagina
+  e il suo originale). Nessuna richiesta a Qwant, per la stessa ragione dei 403 qui sopra.
+- **Il verso lo sceglie lui col tasto del carosello**, orizzontale di serie, ricordato nel
+  `localStorage` di Qwant (`qr-carosello`): lui aveva chiesto se farne un'opzione, e un tasto sul
+  telefono si usa, una costante nello script no.
+- **I risultati successivi**: vicino alla fine la pagina sotto il carosello scorre fino in fondo,
+  come farebbe il dito, e Qwant carica i nuovi, che entrano nel carosello dall'osservatore.
+- **Le misure nell'angolo**: prima quelle dei dati del risultato (`width`, `height`), poi quelle
+  vere dell'originale appena caricato. Un originale si carica solo vicino all'immagine a schermo,
+  senza `Referer`; se il suo sito lo rifiuta, restano la miniatura e le misure dichiarate.
+- ⚠️ **L'osservatore del modulo immagini partiva prima di `<html>`, e non partiva più**: a
+  `document-start` `document.documentElement` può essere `null`, e osservare `null` va in errore,
+  catturato in silenzio. La griglia era letta una volta sola, prima di esistere, e nessun link era
+  riscritto (misurato nel banco il 2026-11-02, con lo script iniettato a `document-start`).
+  Dalla 2.22.0 osservatore, letture e carosello partono dalla guardia `alDocumento`.
+- **Il banco** è una pagina costruita a mano servita all'indirizzo vero di Qwant, che dal
+  container risponde 403: dodici risultati con dati come quelli di Qwant, dodici in più quando la
+  pagina arriva in fondo, originali dispari rifiutati. Misura conto, misure nell'angolo, immagine
+  dentro la sua diapositiva, tocco singolo, cambio di verso, chiusura, ricarica; e sul desktop
+  nessun carosello. La prova vera, sui dati veri di Qwant, la dà il telefono dell'utente.
+
 ## 📥 ENF Roccobot: il picker, e il sito che è stato tolto
 
 **Com'è fatto** (dalla 1.2.0, con javguru rimossa nella 1.3.0). Il tasto apre un **picker** quando la pagina ha più di un

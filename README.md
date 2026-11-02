@@ -27,7 +27,7 @@ GitHub Pages, si installano (e si aggiornano) direttamente dal loro URL.
 
 Qwant essenziale + immagini dirette.
 
-Uno script unico per Qwant, con due funzioni:
+Uno script unico per Qwant, con tre funzioni:
 
 1. **Qwant nudo e crudo** (home e pagine dei risultati). Toglie la "veste"
    alla pagina: doodle/grafiche d'evento sostituiti dal **logo Qwant
@@ -51,6 +51,18 @@ Uno script unico per Qwant, con due funzioni:
 2. **Immagini dirette.** Nella ricerca immagini (`qwant.com` → scheda
    *Immagini*), il clic su una miniatura apre **direttamente il file
    originale** in una nuova scheda, invece del pannello di anteprima.
+3. **Carosello sul telefono** (dalla 2.22.0). Se il puntatore principale è un dito, i
+   risultati della ricerca immagini diventano un **carosello a tutto schermo**: si sfoglia
+   col dito, e solo il **tocco singolo** su un'immagine apre il suo originale. In un angolo ci
+   sono **larghezza × altezza**: quelle dichiarate dai dati del risultato finché l'originale
+   non è caricato, poi quelle vere del file (se il sito dell'originale lo rifiuta, resta la
+   miniatura con le misure dichiarate). In alto ci sono il conto (`11 / 24`), il tasto che
+   cambia il **verso** (`⇅` verticale, `⇆` orizzontale; orizzontale di serie, e la scelta
+   resta ricordata) e `✕`, che chiude il carosello e lascia in basso a sinistra
+   `▶ Carousel` per riaprirlo. Avvicinandosi alla fine, la pagina di Qwant sotto il carosello
+   scorre fino in fondo, così Qwant carica i risultati successivi, che si aggiungono al
+   carosello. Ogni originale si carica solo vicino all'immagine a schermo. Come il resto del
+   modulo immagini, **non fa nessuna richiesta a Qwant**: legge i dati già in pagina.
 
 ### Installazione
 
@@ -83,6 +95,7 @@ const SOSTITUISCI_DOODLE  = true;  // doodle/veste evento → logo Qwant ufficia
 const LOGO_PERSONALIZZATO = '';    // URL di un logo a scelta; vuoto = logo ufficiale integrato
 const APRI_IN_NUOVA_SCHEDA = true; // immagini: nuova scheda (true) o corrente (false)
 const IMMAGINI_DIRETTE    = true;  // false = disattiva il modulo immagini (solo pulizia)
+const CAROSELLO_TELEFONO  = true;  // telefono: risultati immagini come carosello a tutto schermo
 ```
 
 Per cambiarli: icona Tampermonkey → *Dashboard* → clic sul nome dello script →
