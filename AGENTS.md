@@ -341,6 +341,9 @@ Un file più specifico vince **dove parla**, e il suo silenzio non è una deroga
 - **`ScrollProbe.html` ripete la logica della rotella di DIV**: chi tocca il blocco 'ROTELLA
   NUDA' di `DIVRoccobot.user.js` aggiorna anche la sonda e la `@version` che dichiara in testa
   (`Rules.md` § '🔬 La sonda dello scorrimento (`ScrollProbe.html`)').
+- **Ogni lavoro considera la controparte mobile**, perché ora i browser per smartphone eseguono gli
+  userscript: le pagine mobili del sito, i gesti del tocco, i testi più corti, lo schermo stretto
+  (`Rules.md` § '📱 Sul telefono: `pointer: coarse`, pillole a sinistra, bersagli da 44 px').
 - **Sul telefono** (Violentmonkey su Android): la versione mobile la decide `pointer: coarse`, le
   pillole di scaricamento vanno in basso a sinistra, ogni comando toccabile misura almeno 44 px
   (`Rules.md` § '📱 Sul telefono: `pointer: coarse`, pillole a sinistra, bersagli da 44 px').

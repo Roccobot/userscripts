@@ -93,6 +93,24 @@
 Dal 2026-11-01 (`Tascabile`, richiesta dell'utente: i browser Android basati su Chromium con
 Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul telefono.
 
+⚠️⚠️ **OGNI LAVORO SU UNO USERSCRIPT CONSIDERA LA SUA CONTROPARTE MOBILE** (regola dell'utente,
+2026-11-02). Fino a poco tempo fa uno userscript sul telefono era impensabile, e gli script sono
+nati per il desktop; ora i browser per smartphone li eseguono, e l'utente li usa. Quindi uno
+script nuovo, o una funzione nuova o cambiata, si pensa e si prova anche per il telefono:
+- **le pagine mobili del sito**, che spesso sono altre: indirizzi o sottodomini propri, una
+  struttura diversa, o risultati organizzati in un altro modo (il caso di Qwant, dove le immagini
+  sul telefono sono diventate un carosello, nella 2.22.0);
+- **i gesti del tocco** al posto di mouse, tastiera e passaggio del puntatore: tocco singolo,
+  pressione lunga, pizzico e trascinamento (le voci di DIV e di NSFWA qui sotto); una funzione
+  che esiste solo con una scorciatoia o al passaggio del mouse ha bisogno di un'altra via;
+- **i testi più corti** dove lo spazio è poco, come le descrizioni del pannello di DIV (3.2.4),
+  proposti all'utente e approvati da lui come ogni testo nuovo;
+- **lo schermo stretto e i bersagli grandi**: niente scorrimento orizzontale, e le misure delle
+  voci qui sotto.
+
+Dove la controparte mobile non serve (uno script che vale solo per un sito che sul telefono non
+si usa), lo si dice nella proposta, e decide l'utente.
+
 - **La versione mobile la decide il tocco, non la larghezza** (scelta Rilevo-01): vale quando
   il puntatore principale è un dito, `matchMedia('(pointer: coarse)')` in JS e
   `@media (pointer:coarse)` nei fogli di stile, anche col telefono in orizzontale. La sola
