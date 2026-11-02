@@ -98,8 +98,18 @@ Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul tele
   ritira. `100lvh - 100dvh` vale l'altezza della barra mentre è visibile e zero quando si
   ritira, quindi la pillola sale e scende con lei. Il calcolo si applica solo dove il browser
   conosce `dvh` (`CSS.supports`), e vale per le quattro pillole (PH, ENF, Fapopedia, NSFWA).
-  ⚠️ **La causa è un'ipotesi**: nel telefono emulato del banco la barra non c'è, `lvh` e `dvh`
-  coincidono e la pillola era già visibile; la conferma la dà il telefono dell'utente.
+  ⚠️ **Non è bastato**: con la 1.12.0 l'utente non vedeva più la pillola di PH nemmeno scorrendo
+  (2026-11-02).
+- **Dalla 1.12.1 la pillola di PH vive nel livello più alto del browser** (un `popover` manuale,
+  aperto con `showPopover()`): là nessuno `z-index` del sito la copre, e nessun `transform`,
+  `filter` o `contain` su un antenato trasforma `position: fixed` in 'fissa in fondo alla
+  pagina', che è il modo in cui una pillola compare solo scorrendo fino in fondo. Misurato nel
+  telefono emulato con le due trappole messe a mano (`transform` sul `body` e una barra in basso
+  con lo `z-index` massimo, aggiunta dopo): la 1.12.0 finiva a 8.541 px dall'alto, fuori dalla
+  finestra; la 1.12.1 è in basso a sinistra e in primo piano. Gli stili in linea scavalcano quelli
+  del `popover` (`inset`, `margin`, bordo, colori), e una pillola che il sito toglie e rimette si
+  riapre a ogni passata. Se l'utente conferma che basta, lo stesso livello passa alle altre tre
+  pillole.
 - **Ogni comando toccabile misura almeno 44 px** (voci del menu e tondi della pillola di DIV,
   caselle, tasti e campi dei pannelli); i tasti delle scorciatoie nel menu di DIV si nascondono,
   perché sul telefono non c'è una tastiera.

@@ -363,6 +363,12 @@ Su `pornhub.com` fa cinque cose:
    carica subito il video. Misurato nel telefono emulato: senza script il player scarica due
    video da `pre_videos/`, con lo script nessuno. Le altre richieste passano intatte, e se PH
    cambia indirizzo la pubblicità torna senza rompere niente.
+   - ⚠️ **La richiesta parte durante il caricamento**, circa un secondo dopo l'apertura della
+     pagina e prima di qualunque tocco (misurato il 2026-11-02): lo script la prende solo se il
+     gestore lo avvia davvero a `document-start`, nel contesto della pagina.
+   - **La voce di menu `Ad check`** (nel menu del gestore, sul telefono dall'icona di
+     Violentmonkey) dice dopo quanti millisecondi è partito lo script, se gira nel contesto della
+     pagina e quante richieste di pubblicità ha intercettato.
 
 ### Personalizzazione
 

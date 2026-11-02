@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PH Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.12.0
+// @version      1.12.1
 // @description  On pornhub.com: keeps the site in English and Worldwide by rewriting the lang=en and overwriteCCVal=world cookies on every load (PH resets them to Italian now and then), and redirects the language subdomains (it.pornhub.com and so on) to www.pornhub.com so titles are never translated. Adds an always-visible download button at the bottom right: highest MP4 quality available; progress on the button; second click cancels; file named '[Channel] Title.mp4'; source read at runtime from flashvars/mediaDefinitions. Skips the video ad the player shows before playback. Also cleans up the page: removes the Google sign-in popup, hides the 'Click here to watch the full scene' overlay on the player and the AI assistant button in the header, and makes every link to another video page open in a new tab.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -40,17 +40,37 @@
   // wrapper must be in place before the player starts, hence document-start, and it lives on
   // the page's own `fetch` (unsafeWindow), which is the one the player calls. Any other request
   // goes through untouched. (Firefox would need exportFunction; the scripts run on Chromium.)
+  // How late the script started, and how many ad requests got 'no ad' (see the Ad check below).
+  const AVVIO_MS = Math.round(performance.now());
+  let risposteVuote = 0;
   if (SALTA_PUBBLICITA) {
     try {
       const w = unsafeWindow, realFetch = w.fetch;
       w.fetch = function (input, init) {
         const u = typeof input === 'string' ? input : (input && input.url) || '';
         if (/\/_xa\/ads\?/.test(u) && /[?&]preroll_type=json/.test(u)) {
+          risposteVuote++;
           return w.Promise.resolve(new w.Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
         }
         return realFetch.apply(w, arguments);
       };
     } catch (e) { /* never break the page */ }
+  }
+
+  // ── Ad check (menu command) ──
+  // Reported on 2026-11-02 from the phone: with 1.12.0 the ad still played. Measured the same
+  // day: the player sends the ad request while the page loads, about one second after it opens
+  // and before any tap, so the wrapper above works only if the script manager really injects it
+  // at document-start, in the page's own context. The menu command tells, on the device, how
+  // late the script started and whether it runs in the page context; the counter says whether
+  // an ad request has been answered on this page.
+  function controlloPubblicita() {
+    let pagina = false;
+    try { pagina = Object.keys(unsafeWindow).some(function (k) { return /^flashvars_/.test(k); }); } catch (e) {}
+    alert('PH Roccobot ' + (typeof GM_info !== 'undefined' ? GM_info.script.version : '') +
+      '\nStarted ' + AVVIO_MS + ' ms after the page opened (the ad request leaves at about 1000 ms).' +
+      '\nPage context: ' + (pagina ? 'yes' : 'no') +
+      '\nAd requests answered with no ad: ' + risposteVuote);
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -517,7 +537,9 @@
 
   function aggiungiPulsante() {
     try {
-      if (document.getElementById('rb-ph-dl') || !document.body) return;
+      const esistente = document.getElementById('rb-ph-dl');
+      if (esistente) { mostraInCima(esistente); return; }
+      if (!document.body) return;
       // Niente più gate "pagina video": il pulsante appare sempre su pornhub.com
       // (se non è una pagina video, al clic dirà che non trova la sorgente). Così
       // non può "sparire" per una rilevazione sbagliata.
@@ -539,8 +561,8 @@
         ? 'calc(16px + env(safe-area-inset-bottom, 0px) + 100lvh - 100dvh)'
         : 'calc(16px + env(safe-area-inset-bottom, 0px))';
       const st = {
-        'position': 'fixed', 'bottom': basso,
-        [touch ? 'left' : 'right']: '16px', 'z-index': '2147483647',
+        'position': 'fixed', 'bottom': basso, 'top': 'auto',
+        [touch ? 'left' : 'right']: '16px', [touch ? 'right' : 'left']: 'auto', 'z-index': '2147483647',
         'display': 'block', 'visibility': 'visible', 'opacity': '0.92',
         // larghezza FISSA + testo centrato: le cifre della percentuale non fanno
         // "ballare" il tasto; il testo lungo viene troncato con l'ellissi.
@@ -557,8 +579,24 @@
       b.addEventListener('mouseenter', function () { b.style.setProperty('opacity', '1', 'important'); });
       b.addEventListener('mouseleave', function () { b.style.setProperty('opacity', '0.92', 'important'); });
       b.addEventListener('click', function () { scarica(b); });
+      b.setAttribute('popover', 'manual');
       document.body.appendChild(b);
+      mostraInCima(b);
     } catch (e) { /* mai rompere la pagina */ }
+  }
+
+  // The pill lives in the browser's top layer (a manual popover), above everything the page draws
+  // (reported on 2026-11-02 from the phone: with 1.12.0 the pill did not show at all). In the top
+  // layer no z-index of the site can cover it, and no transform, filter or containment on one of
+  // its ancestors can turn `position: fixed` into 'fixed to the end of the page', which is how a
+  // pill shows only after scrolling to the bottom. The inline styles above override the popover's
+  // own defaults (inset 0, margin auto, border, padding, colours). A pill that the page took out
+  // and put back closes its popover, hence the check on every pass. Browsers without popovers
+  // keep the plain fixed pill.
+  function mostraInCima(b) {
+    try {
+      if (typeof b.showPopover === 'function' && !b.matches(':popover-open')) b.showPopover();
+    } catch (e) { /* not in the document, or popovers unsupported: the fixed pill stays */ }
   }
 
   // PH è in parte una SPA: il pulsante va (ri)messo quando compare un video.
@@ -580,6 +618,7 @@
 
   if (typeof GM_registerMenuCommand !== 'undefined') {
     GM_registerMenuCommand('Download the video (highest quality)', function () { scarica(document.getElementById('rb-ph-dl')); });
+    GM_registerMenuCommand('Ad check', controlloPubblicita);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', avvio);
