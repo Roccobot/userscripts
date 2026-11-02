@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Decent Image Viewer
 // @namespace       https://roccobot.github.io/
-// @version         3.2.3
+// @version         3.2.4
 // @description     Decent image viewer for the browser's own image pages, for local files (file:///) and for SVG. Checkerboard background; one-line info panel with format, weight, pixel size and zoom; the image fits the view but never grows past its real size (1:1 with physical pixels), and a click toggles fit and 1:1. Zoom acts on the image only, never on the page: the bare wheel steps through round values and snaps at 100%, from 2% to 4000%; ctrl+wheel and pinch work too; dragging pans, with an overview navigator. Right-click opens its own menu (copy image, copy URL, image search, download, fit, 100/200/400%), and shift+right-click keeps the browser's. 'Image search' hands the image to a reverse image search engine, chosen in the options among Google Lens, Yandex, Bing and TinEye; on a local file, where no engine can reach the image, it copies the picture and opens the engine so it can be pasted. SVG stays vector and exports either as PNG at a chosen DPI or as an SVG stripped of metadata. Keys: A fill-view mode, I wheel direction, N navigator. The Options entry in the manager's menu opens a settings page: interface language (Italian, English or automatic), theme, gestures and export defaults, all kept across script updates.
 // @author          Rocco Casadei, a.k.a. Roccobot
 // @icon            https://roccobot.github.io/userscripts/Roccobot.png
@@ -145,7 +145,7 @@
       errExtern: 'Cannot convert to PNG: external resources are missing.',
       errPng: 'PNG conversion failed.',
       oTitle: 'Decent Image Viewer',
-      oSubtitle: 'Changes are applied in real time: reload an image to check.',
+      oSubtitle: 'Changes apply in real time.',
       oGrpGeneral: 'General',
       oGrpZoom: 'Scrolling, gestures and shortcuts',
       oGrpExport: 'Export',
@@ -154,53 +154,53 @@
       oSaved: 'Saved',
       oItalian: 'Italiano',
       oEnglish: 'English',
-      oLang: 'Interface language',
-      oLangD: 'With \'Automatic\', it follows the browser language (Italian or English).',
+      oLang: 'Language',
+      oLangD: 'Automatic: the browser\'s language.',
       oAuto: 'Automatic',
-      oBgType: 'Background type',
-      oBgTypeD: 'What you see behind a transparent image.',
-      oChecker: 'Checkerboard (transparency)',
+      oBgType: 'Background',
+      oBgTypeD: 'Background for transparent images.',
+      oChecker: 'Checkerboard',
       oSolid: 'Solid color',
       oBgTheme: 'Background theme',
-      oBgThemeD: '\'Automatic\' follows the browser theme.',
+      oBgThemeD: 'Automatic: the browser\'s theme.',
       oAutoTheme: 'Automatic',
       oLight: 'Light',
       oDark: 'Dark',
-      oHiDpi: 'Rendering on HiDPI screens (e.g. \'Retina\')',
-      oHiDpiD: 'Also switchable from the round button in the info panel.',
+      oHiDpi: 'Pixels on HiDPI screens',
+      oHiDpiD: 'Also changes from the round info button.',
       oPhysical: 'Physical pixels',
-      oLogical: 'Logical pixels (larger on HiDPI)',
+      oLogical: 'Logical pixels (larger)',
       oPointer: 'Trackpad and mouse',
-      oPointerD: 'Effect of scrolling without CTRL/Cmd held down.',
+      oPointerD: 'Scrolling without CTRL/Cmd.',
       oPointerZoom: 'Zoom',
-      oPointerHybrid: 'Hybrid (trackpad: panning / mouse: zoom)',
+      oPointerHybrid: 'Hybrid (trackpad: panning, mouse: zoom)',
       oPointerPan: 'Panning',
-      oInvertScroll: 'Inverted scrolling (default: scroll up to zoom in)',
-      oInvertScrollD: 'You can still flip it on the fly with *I*.',
+      oInvertScroll: 'Inverted scrolling',
+      oInvertScrollD: 'By default, scrolling up zooms in; *I* flips it on the fly.',
       oGrowSmall: 'Enlarge small images',
       oGrowSmallD: 'Key *A* toggles it on the fly.',
       oShowNav: 'Show the navigator',
       oShowNavD: 'Key *N* shows and hides it on the fly.',
-      oSensGesture: 'Gesture zoom sensitivity',
-      oSensGestureD: 'For trackpads and CTRL/Cmd + scroll.',
-      oSensScroll: 'Scroll zoom sensitivity',
-      oSensScrollD: 'For two-finger up and down dragging on a trackpad.\nUsually a much lower value than the previous one.',
+      oSensGesture: 'Zoom gesture sensitivity',
+      oSensGestureD: 'Trackpad and CTRL/Cmd + scroll.',
+      oSensScroll: 'Scroll sensitivity',
+      oSensScrollD: 'Two fingers up and down on the trackpad; usually much lower than the previous one.',
       oMaxZoom: 'Maximum magnification',
-      oMaxZoomD: 'Multiple of the real size.',
-      oDpiCopy: 'DPI for \'Copy image\' on vector files',
-      oDpiCopyD: 'Resolution of the image generated on the fly by \'Copy image\' on SVG files.',
-      oDpiPng: 'Default DPI for exported PNGs',
+      oMaxZoomD: 'Multiple of the original.',
+      oDpiCopy: 'DPI for \'Copy image\' on SVG',
+      oDpiCopyD: 'Resolution of the PNG copied from an SVG.',
+      oDpiPng: 'DPI of exported PNGs',
       oSimilar: 'Reverse image search',
-      oSimilarD: 'Engine used by \'Image search\' in the right-click menu.',
+      oSimilarD: 'The engine for \'Image search\'.',
       oLens: 'Google Lens',
       oYandex: 'Yandex',
       oBing: 'Bing',
       oTineye: 'TinEye',
-      oNudge: 'Vertical nudge of the info text',
-      oNudgeD: 'Useful to compensate a misalignment\nat certain custom zoom levels. 0 = untouched.',
+      oNudge: 'Vertical alignment of the info',
+      oNudgeD: 'Fixes a misalignment at some browser zoom levels. 0 = none.',
       oDefault: 'Default',
       oEdit: 'Edit ⚠️',
-      oNote: 'Only the settings worth changing are here. Wheel step, zoom stops and gesture thresholds stay in the script: they are measured values, and the reason behind each one is written next to it.'
+      oNote: 'Only the useful settings are here: the other values are measured and stay in the script.'
     },
     it: {
       oOptions: 'Opzioni',
@@ -245,7 +245,7 @@
       errExtern: 'Impossibile convertire in PNG: mancano delle risorse esterne.',
       errPng: 'Conversione in PNG non riuscita.',
       oTitle: 'Decent Image Viewer',
-      oSubtitle: 'Le modifiche sono applicate in tempo reale: ricarica un\'immagine per verificare.',
+      oSubtitle: 'Vedrai le modifiche in tempo reale.',
       oGrpGeneral: 'Generale',
       oGrpZoom: 'Scorrimento, gesti e scorciatoie',
       oGrpExport: 'Esportazione',
@@ -254,53 +254,53 @@
       oSaved: 'Salvato',
       oItalian: 'Italiano',
       oEnglish: 'English',
-      oLang: 'Lingua dell\'interfaccia',
-      oLangD: 'Con \'Automatica\' si allinea alla lingua del browser (italiano o inglese).',
+      oLang: 'Lingua',
+      oLangD: 'Automatica: lingua del browser.',
       oAuto: 'Automatica',
-      oBgType: 'Tipo di sfondo',
-      oBgTypeD: 'Che cosa si vede dietro a un\'immagine trasparente.',
-      oChecker: 'Scacchiera (trasparenza)',
+      oBgType: 'Sfondo',
+      oBgTypeD: 'Sfondo per le immagini trasparenti.',
+      oChecker: 'Scacchiera',
       oSolid: 'Colore uniforme',
       oBgTheme: 'Tema dello sfondo',
-      oBgThemeD: '\'Automatico\' segue il tema del browser.',
+      oBgThemeD: 'Automatico: tema del browser.',
       oAutoTheme: 'Automatico',
       oLight: 'Chiaro',
       oDark: 'Scuro',
-      oHiDpi: 'Rendering su schermi HiDPI (es. \'Retina\')',
-      oHiDpiD: 'Si commuta anche dal tondo nel riquadro delle informazioni.',
+      oHiDpi: 'Pixel per schermi HiDPI',
+      oHiDpiD: 'Si cambia anche dal tondo delle info.',
       oPhysical: 'Pixel fisici',
-      oLogical: 'Pixel logici (più grande su HiDPI)',
+      oLogical: 'Pixel logici (più grandi)',
       oPointer: 'Trackpad e mouse',
-      oPointerD: 'Effetto dello scorrimento senza pressione di CTRL/Cmd.',
+      oPointerD: 'Scorrimento senza CTRL/Cmd.',
       oPointerZoom: 'Zoom',
-      oPointerHybrid: 'Ibrido (trackpad: spostamento / mouse: zoom)',
+      oPointerHybrid: 'Ibrido (trackpad: spostamento, mouse: zoom)',
       oPointerPan: 'Spostamento',
-      oInvertScroll: 'Scorrimento inverso (predefinito: scorri in alto per ingrandire)',
-      oInvertScrollD: 'Puoi comunque cambiare verso al volo premendo *I*.',
+      oInvertScroll: 'Scorrimento inverso',
+      oInvertScrollD: 'Di serie si scorre in alto per ingrandire; *I* inverte al volo.',
       oGrowSmall: 'Ingrandisci le immagini piccole',
       oGrowSmallD: 'Tasto *A* per attivare/disattivare al volo.',
       oShowNav: 'Mostra il navigatore',
       oShowNavD: 'Tasto *N* per mostrare/nascondere al volo.',
-      oSensGesture: 'Sensibilità dello zoom gestuale',
-      oSensGestureD: 'Per trackpad e CTRL/Cmd + scorrimento.',
-      oSensScroll: 'Sensibilità dello zoom a scorrimento',
-      oSensScrollD: 'Per il trascinamento su/giù con due dita sul trackpad.\nValore di solito molto più basso del precedente.',
+      oSensGesture: 'Sensibilità del gesto di zoom',
+      oSensGestureD: 'Trackpad e CTRL/Cmd + scorrimento.',
+      oSensScroll: 'Sensibilità dello scorrimento',
+      oSensScrollD: 'Due dita su e giù sul trackpad; di solito molto più bassa della precedente.',
       oMaxZoom: 'Ingrandimento massimo',
-      oMaxZoomD: 'Multiplo della dimensione reale.',
-      oDpiCopy: 'DPI per \'Copia immagine\' dei file vettoriali',
-      oDpiCopyD: 'Risoluzione dell\'immagine generata al volo con \'Copia immagine\' su file SVG.',
-      oDpiPng: 'DPI predefinito per i PNG esportati',
+      oMaxZoomD: 'Multiplo dell\'originale.',
+      oDpiCopy: 'DPI per \'Copia immagine\' SVG',
+      oDpiCopyD: 'Risoluzione del PNG copiato da un SVG.',
+      oDpiPng: 'DPI dei PNG esportati',
       oSimilar: 'Ricerca per immagine',
-      oSimilarD: 'Motore usato da \'Ricerca immagine\' nel menu del tasto destro.',
+      oSimilarD: 'Il motore di \'Ricerca immagine\'.',
       oLens: 'Google Lens',
       oYandex: 'Yandex',
       oBing: 'Bing',
       oTineye: 'TinEye',
-      oNudge: 'Spostamento verticale del testo informativo',
-      oNudgeD: 'Utile per compensare un disallineamento\na certi livelli personalizzati di zoom. 0 = inalterato.',
+      oNudge: 'Allineamento verticale delle informazioni',
+      oNudgeD: 'Corregge un disallineamento a certi zoom del browser. 0 = nessuno.',
       oDefault: 'Predefinito',
       oEdit: 'Modifica ⚠️',
-      oNote: 'Qui ci sono solo le impostazioni che conviene cambiare. Passo della rotella, tappe dello zoom e soglie dei gesti restano nello script: sono valori misurati, e accanto a ciascuno è scritto il perché.'
+      oNote: 'Qui ci sono solo le impostazioni utili: gli altri valori sono misurati e restano nello script.'
     }
   };
   function T(k) {
@@ -2298,7 +2298,7 @@
       '.dv-o-reset:hover{border-color:var(--dv-acc)}' +
       '.dv-o-echo{color:var(--dv-acc);font-size:.9rem;opacity:0;transition:opacity .15s}' +
       '.dv-o-echo.dv-on{opacity:1}' +
-      '.dv-o-note{color:var(--dv-sub);font-size:.82rem;margin-top:1.6rem}' +
+      '.dv-o-note{color:var(--dv-sub);font-size:.82rem;margin:0 0 0 auto;max-width:24rem;text-align:right;text-wrap:pretty}' +
       ':focus-visible{outline:2px solid var(--dv-acc);outline-offset:2px}' +
       // Touch-first device: fields, menus and buttons at least 44 px tall, and bigger boxes.
       '@media (pointer:coarse){' +
@@ -2319,6 +2319,7 @@
         // (reported on 2026-11-02 on the 'Trackpad and mouse' menu). Basis 0 and min-width 0
         // keep it at the width of the row.
         '.dv-o-ctl select{max-width:none;flex:1 1 0;min-width:0;width:100%}' +
+        '.dv-o-note{margin:0;max-width:none;text-align:left}' +
       '}'
     );
 
@@ -2490,8 +2491,10 @@
     });
     footer.appendChild(reset);
     footer.appendChild(echo);
+    // the note sits at the right of the reset button, aligned right (request of 2026-11-02);
+    // on a narrow touch screen it goes under the button
+    footer.appendChild(node('p', 'dv-o-note', T('oNote')));
     root.appendChild(footer);
-    root.appendChild(node('p', 'dv-o-note', T('oNote')));
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
