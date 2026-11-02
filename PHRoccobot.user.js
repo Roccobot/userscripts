@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PH Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.12.1
+// @version      1.12.2
 // @description  On pornhub.com: keeps the site in English and Worldwide by rewriting the lang=en and overwriteCCVal=world cookies on every load (PH resets them to Italian now and then), and redirects the language subdomains (it.pornhub.com and so on) to www.pornhub.com so titles are never translated. Adds an always-visible download button at the bottom right: highest MP4 quality available; progress on the button; second click cancels; file named '[Channel] Title.mp4'; source read at runtime from flashvars/mediaDefinitions. Skips the video ad the player shows before playback. Also cleans up the page: removes the Google sign-in popup, hides the 'Click here to watch the full scene' overlay on the player and the AI assistant button in the header, and makes every link to another video page open in a new tab.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -580,7 +580,13 @@
       b.addEventListener('mouseleave', function () { b.style.setProperty('opacity', '0.92', 'important'); });
       b.addEventListener('click', function () { scarica(b); });
       b.setAttribute('popover', 'manual');
-      document.body.appendChild(b);
+      // Last child of <html>, outside <body>: a transform or filter on <body> cannot turn
+      // `position: fixed` into 'fixed to the end of the page', and coming last in the tree it is
+      // drawn after every element of the page with the same z-index. This holds on browsers
+      // without popovers too (Chromium before 114), where the top layer below does not exist:
+      // reported on 2026-11-02 from the phone with 1.12.1, measured the same day by removing
+      // showPopover in an emulated Pixel 7 (the pill 8,582 px from the top, off screen).
+      document.documentElement.appendChild(b);
       mostraInCima(b);
     } catch (e) { /* mai rompere la pagina */ }
   }

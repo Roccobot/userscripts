@@ -110,6 +110,13 @@ Manifest V2 installano Violentmonkey) ogni script deve funzionare anche sul tele
   del `popover` (`inset`, `margin`, bordo, colori), e una pillola che il sito toglie e rimette si
   riapre a ogni passata. Se l'utente conferma che basta, lo stesso livello passa alle altre tre
   pillole.
+- **Dalla 1.12.2 la pillola di PH è l'ultimo figlio di `<html>`, fuori dal `<body>`** (con la 1.12.1
+  l'utente la vedeva ancora come prima, 2026-11-02): il livello più alto esiste solo da Chromium
+  114, e un browser più vecchio ricade sulla pillola fissa normale. Fuori dal `<body>` nessuno
+  stile del `<body>` la ancora alla fine della pagina, e venendo per ultima nell'albero è disegnata
+  sopra ogni elemento con lo stesso `z-index`. Misurato togliendo `showPopover` nel Pixel 7
+  emulato, con le due trappole: la 1.12.1 a 8.582 px dall'alto, fuori dalla finestra; la 1.12.2
+  dentro e in primo piano, con e senza `popover`.
 - **Ogni comando toccabile misura almeno 44 px** (voci del menu e tondi della pillola di DIV,
   caselle, tasti e campi dei pannelli); i tasti delle scorciatoie nel menu di DIV si nascondono,
   perché sul telefono non c'è una tastiera.
