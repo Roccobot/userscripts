@@ -48,8 +48,22 @@
     min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap;
   }
   .install:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
-  footer { color: var(--sub); font-size: .85rem; margin-top: 2rem; }
+  footer { color: var(--sub); font-size: .85rem; margin-top: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  footer p { margin: 0; }
   footer a { color: var(--sub); }
+  /* A display rule would beat the UA's [hidden], so the attribute is made to win */
+  [hidden] { display: none !important; }
+  .list + .list { margin-top: .9rem; }
+  /* The mark at the end of the footer: the glyph is small, the touch area is 44 px, and the negative
+     margins keep that area from making the footer taller or pushing the mark off the right edge */
+  .mark {
+    flex: none; width: 2.75rem; height: 2.75rem; margin: -.9rem -.8rem -.9rem 0; padding: 0;
+    display: grid; place-items: center; background: none; border: 0; color: var(--sub); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mark svg { width: 1.1rem; height: auto; }
+  .mark[aria-expanded="true"] { color: var(--acc); }
+  .mark:focus-visible { outline: 2px solid var(--acc); outline-offset: -4px; border-radius: 10px; }
 </style>
 </head>
 <body>
@@ -60,14 +74,17 @@
   </header>
   <p class="intro">Install Violentmonkey or Tampermonkey first, then tap Install: the manager opens its own install page, and updates arrive by themselves.</p>
   <div class="list" id="list"></div>
+  <div class="list" id="more" hidden></div>
   <footer>
     <p>Source code and full notes on <a href="https://github.com/Roccobot/userscripts">GitHub</a>.</p>
+    <button class="mark" id="mark" type="button" aria-label="Roccobot" aria-controls="more" aria-expanded="false"><svg viewBox="10 8 160 145" aria-hidden="true"><path d="M103.08,73.5h57.41l-4.92-61.87H24.67v15.55h57.09c-.82,11.19-1.97,21.3-3.61,30.62H20.24l4.43,15.7h49.7c-2.46,8.39-5.41,15.55-9.02,21.3-10.01,15.86-26.9,29.69-50.85,41.35l10.99,13.37c26.25-13.68,44.95-29.69,55.94-48.19,3.28-5.6,6.07-12.28,8.69-20.05,12.14,29.23,33.79,51.92,65.12,68.24l10.83-13.37c-30.51-14.77-51.51-35.6-62.99-62.65ZM99.14,27.18h42.71l1.34,30.62h-47.67c1.48-9.02,2.62-19.28,3.61-30.62Z" fill="currentColor" fill-rule="evenodd"/></svg></button>
   </footer>
 </main>
 <script>
   'use strict';
   // The one list of scripts: file name, title as in @name, where it works, what it does,
-  // and its section of the README.
+  // and its section of the README. A script marked `hidden` is not on the page until the mark
+  // in the footer is tapped, and goes away again with a second tap.
   const SCRIPTS = [
     { file: 'DIVRoccobot.user.js', name: 'Decent Image Viewer', site: 'Any image opened in the browser',
       blurb: 'A better viewer for images: fit or real size, zoom with wheel, pinch or keys, pan, a navigator and its own right-click menu. Works on local files and SVG too.',
@@ -75,16 +92,16 @@
     { file: 'QwantRoccobot.user.js', name: 'Qwant Roccobot', site: 'qwant.com',
       blurb: 'A cleaner Qwant without ads, promos or clutter. Image results open the original file, and on a phone they become a carousel you swipe.',
       readme: 'qwant-roccobot' },
-    { file: 'PHRoccobot.user.js', name: 'PH Roccobot', site: 'pornhub.com',
+    { file: 'PHRoccobot.user.js', name: 'PH Roccobot', site: 'pornhub.com', hidden: true,
       blurb: 'Keeps the site in English, skips the ad before the video and adds a button that downloads it at the best quality.',
       readme: 'ph-roccobot' },
-    { file: 'ENFRoccobot.user.js', name: 'ENF Roccobot', site: 'enf-cmnf.cc, enfhub.com, xhamster.com',
+    { file: 'ENFRoccobot.user.js', name: 'ENF Roccobot', site: 'enf-cmnf.cc, enfhub.com, xhamster.com', hidden: true,
       blurb: 'Download buttons for the videos, and every full-size photo of a post in one ZIP.',
       readme: 'enf-roccobot' },
-    { file: 'NSFWARoccobot.user.js', name: 'NSFWA Roccobot', site: 'nsfwalbum.com',
+    { file: 'NSFWARoccobot.user.js', name: 'NSFWA Roccobot', site: 'nsfwalbum.com', hidden: true,
       blurb: 'Real images you can open and save again, and a whole album at full resolution in one ZIP.',
       readme: 'nsfwa-roccobot' },
-    { file: 'FapopediaRoccobot.user.js', name: 'Fapopedia Roccobot', site: 'fapopedia.net',
+    { file: 'FapopediaRoccobot.user.js', name: 'Fapopedia Roccobot', site: 'fapopedia.net', hidden: true,
       blurb: 'Every image of a gallery at full resolution, in one ZIP.',
       readme: 'fapopedia-roccobot' },
     { file: 'LotRWikiRoccobot.user.js', name: 'LotRWiki Roccobot', site: 'lotr.fandom.com',
@@ -111,8 +128,8 @@
   const intro = document.querySelector('.intro');
   intro.textContent = lega(intro.textContent);
 
-  const list = document.getElementById('list');
-  for (const s of SCRIPTS) {
+  // One card per script, added to the given list
+  function addCard(list, s) {
     const card = el('article', 'card');
     const name = el('h2', 'name', s.name);
     const ver = el('span', 'ver');
@@ -135,6 +152,22 @@
       })
       .catch(function () { /* the card works without the number */ });
   }
+
+  for (const s of SCRIPTS) if (!s.hidden) addCard(document.getElementById('list'), s);
+
+  // The mark in the footer is an on-off key for the hidden scripts. Nothing is stored: a reload
+  // brings the page back as everyone sees it. The cards are built the first time they are shown,
+  // so their files are not even requested before.
+  const mark = document.getElementById('mark');
+  const more = document.getElementById('more');
+  mark.addEventListener('click', function () {
+    const on = more.hidden;
+    if (on && !more.firstChild) for (const s of SCRIPTS) if (s.hidden) addCard(more, s);
+    more.hidden = !on;
+    mark.setAttribute('aria-expanded', String(on));
+    // the new cards appear above the footer: bring them into view
+    if (on) more.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
 </script>
 </body>
 </html>
