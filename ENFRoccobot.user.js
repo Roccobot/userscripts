@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ENF Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.6.2
+// @version      1.6.3
 // @description  Adds a Download button to enf-cmnf.cc, enfhub.com and xhamster.com that saves the page's videos. On enf-cmnf.cc photo posts a second button packs every full-size image of the post into a single ZIP, built in the script itself with no external library: it takes the widest srcset candidate, retries the un-resized WordPress original (the -800x600 suffix hides a bigger file), skips avatars, icons and thumbnails from the sidebars, downloads a few images at a time and lists the failed ones once at the end. On xhamster it also forces the English site (no language subdomain) and picks the highest resolution on its own, asking only when the same resolution comes in more than one codec. Covers every player the two sites use: direct MP4 (<source> or <video src>), self-hosted HLS on cdn.enf-cmnf.cc, and enfhub's HLS (master.m3u8, read from the player or derived from the poster); HLS is fetched segment by segment and joined into one .ts file. On forum threads it opens a picker that lists the videos in page order with a thumbnail, the post number and the author, lets you tick several of them and downloads them one after the other, writing the post number into each filename. Progress on the button, second click cancels.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -894,17 +894,77 @@
 
   function mb(n) { return (n / 1048576).toFixed(1) + ' MB'; }
 
+  // Save a blob to disk. ⚠️ An <a download> click AFTER an await is often
+  // swallowed by the browser (the user gesture is gone), which is exactly the
+  // "button says Done, nothing arrives" failure: the promise resolved, the
+  // click did nothing. Prefer GM_download on the blob URL (privileged, no
+  // gesture needed); keep the anchor as last resort.
   function salvaBlob(blob, nome) {
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = nome;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () {
-      try { a.remove(); URL.revokeObjectURL(url); } catch (e) {}
-    }, 120000);
+    return new Promise(function (risolvi, rifiuta) {
+      var url = URL.createObjectURL(blob);
+      var chiuso = false;
+      function pulisci() {
+        setTimeout(function () {
+          try { URL.revokeObjectURL(url); } catch (e) {}
+        }, 120000);
+      }
+      function viaAncora() {
+        try {
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = nome;
+          a.rel = 'noopener';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () { try { a.remove(); } catch (e) {} }, 1000);
+          pulisci();
+          risolvi();
+        } catch (e) {
+          pulisci();
+          rifiuta(e instanceof Error ? e : new Error(String(e)));
+        }
+      }
+      function unaVolta(fn) {
+        return function () {
+          if (chiuso) return;
+          chiuso = true;
+          fn.apply(null, arguments);
+        };
+      }
+      if (typeof GM_download !== 'function') {
+        viaAncora();
+        return;
+      }
+      try {
+        var h = GM_download({
+          url: url,
+          name: nome,
+          saveAs: SALVA_CON_DIALOGO,
+          onload: unaVolta(function () { pulisci(); risolvi(); }),
+          onerror: unaVolta(function () { viaAncora(); }),
+          ontimeout: unaVolta(function () { viaAncora(); }),
+          onabort: unaVolta(function () {
+            pulisci();
+            rifiuta(new Error('cancelled'));
+          })
+        });
+        if (h && typeof h.abort === 'function') manoGM = h;
+      } catch (e) {
+        viaAncora();
+      }
+    });
+  }
+
+  // True when Violentmonkey routes GM_download through browser.downloads.
+  // That API cannot send Sec-Fetch-Dest: video, so the enf-cmnf CDN answers
+  // 403; the manager may still report a finished download of the error page.
+  function gmDownloadViaBrowser() {
+    try {
+      return typeof GM_info !== 'undefined' && GM_info && GM_info.downloadMode === 'browser';
+    } catch (e) {
+      return false;
+    }
   }
 
   // MP4, primo tentativo: GM_download scrive direttamente su file (nessun limite
@@ -951,8 +1011,7 @@
         onload: function (r) {
           if (r.status < 200 || r.status >= 300) { rifiuta(new Error('HTTP ' + r.status)); return; }
           mostra(btn, '💾 Saving...');
-          salvaBlob(r.response, nome);
-          risolvi();
+          Promise.resolve(salvaBlob(r.response, nome)).then(risolvi, rifiuta);
         },
         onerror: function () { rifiuta(new Error('rete')); },
         ontimeout: function () { rifiuta(new Error('timeout')); }
@@ -970,12 +1029,18 @@
                       'Referer and Sec-Fetch-Dest headers, which are required here.');
     }
     mostra(btn, '⬇︎ 0%');
-    try {
-      await scaricaMp4ConGM(url, nome, btn);
-    } catch (e) {
-      if (annullato) throw e;
-      await scaricaMp4InMemoria(url, nome, btn);
+    // Skip direct GM_download when it goes through browser.downloads: that
+    // path cannot carry Sec-Fetch-Dest: video, the CDN returns 403, and the
+    // button still flips to Done. Fetch with headers, then save the blob.
+    if (!gmDownloadViaBrowser()) {
+      try {
+        await scaricaMp4ConGM(url, nome, btn);
+        return;
+      } catch (e) {
+        if (annullato) throw e;
+      }
     }
+    await scaricaMp4InMemoria(url, nome, btn);
   }
 
   // HLS: playlist, poi i segmenti in parallelo mantenendo l'ordine, poi un solo
@@ -1034,7 +1099,7 @@
     if (annullato) throw new Error('cancelled');
 
     mostra(btn, '💾 Saving...');
-    salvaBlob(new Blob(parti, { type: 'video/mp2t' }), nome);
+    await salvaBlob(new Blob(parti, { type: 'video/mp2t' }), nome);
   }
 
   function annulla(btn) {
@@ -1261,7 +1326,7 @@
       var archivio = zipDaVoci(dentro);
 
       mostra(btn, '💾 Saving...');
-      salvaBlob(archivio, nomeZip());
+      await salvaBlob(archivio, nomeZip());
 
       if (errori.length) {
         mostra(btn, '⚠️ ' + errori.length + ' failed', COLORE_KO);
