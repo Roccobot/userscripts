@@ -296,8 +296,8 @@ Un file più specifico vince **dove parla**, e il suo silenzio non è una deroga
   (`Rules.md` § '🧩 Userscript (`/userscripts`)').
 - **Pagina d'installazione bilingue**: `index.html` apre nella lingua del browser e nel tema di
   sistema; nel piede, prima del marchio, due pillole cambiano lingua e tema (`L` / `T`) solo per
-  la visita, senza memorizzare niente. Eccezione dichiarata alla vecchia 'solo inglese'; il
-  clic sul marchio che mostra/nasconde gli script `hidden` resta invariato (`Rules.md`).
+  la visita, senza memorizzare niente. Eccezione dichiarata alla vecchia 'solo inglese'; gli
+  script `hidden` li mostra/nasconde il `•` centrato sotto il piede, non il marchio (`Rules.md`).
 - **Ramo principale `main`**; il go-live segue il nucleo universale.
 - **Versione SemVer**, con la fonte unica nel `@version` dell'intestazione di ogni script:
   `patch` per i fix e i commenti, `minor` per le funzioni nuove, `major` per un cambio che

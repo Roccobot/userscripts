@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Userscript di Roccobot</title>
-<meta name="description" content="Gli userscript di Roccobot per Violentmonkey e Tampermonkey, un tocco dall'installazione.">
+<meta name="description" content="Gli userscript di Roccobot per Violentmonkey, un tocco dall'installazione.">
 <link rel="icon" href="Roccobot.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,11 +69,15 @@
     -webkit-tap-highlight-color: transparent;
   }
   main { max-width: 46rem; margin: 0 auto; padding: 2rem 1rem 3rem; }
-  header { display: flex; align-items: center; gap: .9rem; margin-bottom: .6rem; }
-  header img { width: 3rem; height: 3rem; border-radius: 12px; }
-  h1 { font-size: 1.5rem; margin: 0; font-weight: 600; letter-spacing: -.01em; }
+  /* The mark and the title side by side, centred. The image is shown whole, with no rounding.
+     The glyph fills about 93% of its square, so an image of about 1.7rem matches the capital height
+     (about 0.72em) of a 2rem title. */
+  header { display: flex; align-items: center; justify-content: center; gap: .6rem; margin-bottom: .8rem; }
+  header img { width: auto; height: 1.7rem; display: block; }
+  h1 { font-size: 2rem; line-height: 1; margin: 0; font-weight: 600; letter-spacing: -.01em; }
   p { text-wrap: pretty; }
-  .intro { color: var(--testo-secondario); margin: 0 0 1.6rem; }
+  .intro { color: var(--testo-secondario); margin: 0 0 1.6rem; text-align: center; }
+  .intro a { color: var(--testo-accento); }
   .list { display: grid; gap: .9rem; }
   .card {
     background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--raggio-scheda-web);
@@ -90,16 +94,11 @@
     background: var(--accento); color: var(--contenuto-su-accento); border-radius: var(--raggio-pieno); padding: .65rem 1.1rem;
     min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap;
   }
-  .install:focus-visible, .ctl:focus-visible, .mark:focus-visible {
+  .install:focus-visible, .ctl:focus-visible, .dot:focus-visible {
     outline: 2px solid var(--testo-accento); outline-offset: 2px;
   }
-  footer {
-    color: var(--testo-secondario); font-size: .85rem; margin-top: 2rem;
-    display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
-  }
-  footer p { margin: 0; flex: 1 1 auto; min-width: 12rem; }
-  footer a { color: var(--testo-secondario); }
-  .foot-ctls { display: flex; align-items: center; gap: .35rem; flex: none; margin-left: auto; }
+  footer { color: var(--testo-secondario); font-size: .85rem; margin-top: 2rem; display: flex; justify-content: center; }
+  .foot-ctls { display: flex; align-items: center; justify-content: center; gap: .35rem; }
   /* Compact pills in the footer: icon (and short language code), 44 px touch, full radius.
      Shorter than the design-page labeled pills so they sit beside the mark without crowding. */
   .ctl {
@@ -117,15 +116,17 @@
   /* A display rule would beat the UA's [hidden], so the attribute is made to win */
   [hidden] { display: none !important; }
   .list + .list { margin-top: .9rem; }
-  /* The mark at the end of the footer: the glyph is small, the touch area is 44 px, and the negative
-     margins keep that area from making the footer taller or pushing the mark off the right edge */
-  .mark {
-    flex: none; width: 2.75rem; height: 2.75rem; margin: -.9rem -.8rem -.9rem 0; padding: 0;
-    display: grid; place-items: center; background: none; border: 0; color: var(--testo-secondario); cursor: pointer;
-  }
+  /* The small mark in the footer block: brand only, not a control */
+  .mark { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; color: var(--testo-secondario); }
   .mark svg { width: 1.1rem; height: auto; }
-  .mark[aria-expanded="true"] { color: var(--testo-accento); }
-  .mark:focus-visible { outline-offset: -4px; border-radius: 10px; }
+  /* The dot under the footer: the on-off key for the hidden scripts. Same colour as the text,
+     no link look; the touch area is 44 px. */
+  .dot-row { display: flex; justify-content: center; margin-top: 2.5rem; }
+  .dot {
+    width: 2.75rem; height: 2.75rem; padding: 0; background: none; border: 0;
+    color: var(--testo-secondario); font: 400 1.5rem/1 var(--tipo); text-decoration: none; cursor: pointer;
+  }
+  .dot:focus-visible { outline-offset: -4px; border-radius: 10px; }
   @media (prefers-reduced-motion: no-preference) {
     .ctl { transition: background-color .16s, border-color .16s, color .16s; }
   }
@@ -138,16 +139,12 @@
     <h1><span lang="it">Userscript di Roccobot</span><span lang="en">Roccobot userscripts</span></h1>
   </header>
   <p class="intro">
-    <span lang="it">Installa prima Violentmonkey o Tampermonkey, poi tocca Installa: il gestore apre la sua pagina d'installazione, e gli aggiornamenti arrivano da soli.</span>
-    <span lang="en">Install Violentmonkey or Tampermonkey first, then tap Install: the manager opens its own install page, and updates arrive by themselves.</span>
+    <span lang="it">Collezione di userscript per <a href="https://violentmonkey.github.io/">Violentmonkey</a>.</span>
+    <span lang="en">A collection of userscripts for <a href="https://violentmonkey.github.io/">Violentmonkey</a>.</span>
   </p>
   <div class="list" id="list"></div>
   <div class="list" id="more" hidden></div>
   <footer>
-    <p>
-      <span lang="it">Codice sorgente e note complete su <a href="https://github.com/Roccobot/userscripts">GitHub</a>.</span>
-      <span lang="en">Source code and full notes on <a href="https://github.com/Roccobot/userscripts">GitHub</a>.</span>
-    </p>
     <div class="foot-ctls">
       <button class="ctl lang" id="lang" type="button" aria-label="Mostra la pagina in inglese">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c2.6 2.6 2.6 14.4 0 17M12 3.5c-2.6 2.6-2.6 14.4 0 17" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -156,15 +153,16 @@
       <button class="ctl theme" id="theme" type="button" aria-label="Passa al tema scuro">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>
       </button>
-      <button class="mark" id="mark" type="button" aria-label="Roccobot" aria-controls="more" aria-expanded="false"><svg viewBox="10 8 160 145" aria-hidden="true"><path d="M103.08,73.5h57.41l-4.92-61.87H24.67v15.55h57.09c-.82,11.19-1.97,21.3-3.61,30.62H20.24l4.43,15.7h49.7c-2.46,8.39-5.41,15.55-9.02,21.3-10.01,15.86-26.9,29.69-50.85,41.35l10.99,13.37c26.25-13.68,44.95-29.69,55.94-48.19,3.28-5.6,6.07-12.28,8.69-20.05,12.14,29.23,33.79,51.92,65.12,68.24l10.83-13.37c-30.51-14.77-51.51-35.6-62.99-62.65ZM99.14,27.18h42.71l1.34,30.62h-47.67c1.48-9.02,2.62-19.28,3.61-30.62Z" fill="currentColor" fill-rule="evenodd"/></svg></button>
+      <span class="mark" role="img" aria-label="Roccobot"><svg viewBox="10 8 160 145" aria-hidden="true"><path d="M103.08,73.5h57.41l-4.92-61.87H24.67v15.55h57.09c-.82,11.19-1.97,21.3-3.61,30.62H20.24l4.43,15.7h49.7c-2.46,8.39-5.41,15.55-9.02,21.3-10.01,15.86-26.9,29.69-50.85,41.35l10.99,13.37c26.25-13.68,44.95-29.69,55.94-48.19,3.28-5.6,6.07-12.28,8.69-20.05,12.14,29.23,33.79,51.92,65.12,68.24l10.83-13.37c-30.51-14.77-51.51-35.6-62.99-62.65ZM99.14,27.18h42.71l1.34,30.62h-47.67c1.48-9.02,2.62-19.28,3.61-30.62Z" fill="currentColor" fill-rule="evenodd"/></svg></span>
     </div>
   </footer>
+  <div class="dot-row"><button class="dot" id="dot" type="button" aria-label="Altri script" aria-controls="more" aria-expanded="false">•</button></div>
 </main>
 <script>
   'use strict';
   // The one list of scripts: file name, title as in @name, where it works (IT/EN), what it does
   // (IT/EN), and its section of the README. A script marked `hidden` is not on the page until the
-  // mark in the footer is tapped, and goes away again with a second tap.
+  // dot under the footer is tapped, and goes away again with a second tap.
   const SCRIPTS = [
     { file: 'DIVRoccobot.user.js', name: 'Decent Image Viewer',
       site: { it: 'Qualsiasi immagine aperta nel browser', en: 'Any image opened in the browser' },
@@ -304,13 +302,13 @@
       it: {
         toDark: 'Passa al tema scuro', toLight: 'Passa al tema chiaro',
         code: 'EN', toOther: 'Mostra la pagina in inglese',
-        desc: 'Gli userscript di Roccobot per Violentmonkey e Tampermonkey, un tocco dall\'installazione.',
+        desc: 'Gli userscript di Roccobot per Violentmonkey, un tocco dall\'installazione.',
         title: 'Userscript di Roccobot'
       },
       en: {
         toDark: 'Switch to the dark theme', toLight: 'Switch to the light theme',
         code: 'IT', toOther: 'Show the page in Italian',
-        desc: "Roccobot's userscripts for Violentmonkey and Tampermonkey, one tap from install.",
+        desc: "Roccobot's userscripts for Violentmonkey, one tap from install.",
         title: 'Roccobot userscripts'
       }
     };
@@ -368,16 +366,16 @@
     setLang(browserIt ? 'it' : 'en');
   })();
 
-  // The mark in the footer is an on-off key for the hidden scripts. Nothing is stored: a reload
+  // The dot under the footer is an on-off key for the hidden scripts. Nothing is stored: a reload
   // brings the page back as everyone sees it. The cards are built the first time they are shown,
   // so their files are not even requested before.
-  const mark = document.getElementById('mark');
+  const dot = document.getElementById('dot');
   const more = document.getElementById('more');
-  mark.addEventListener('click', function () {
+  dot.addEventListener('click', function () {
     const on = more.hidden;
     if (on && !more.firstChild) for (const s of SCRIPTS) if (s.hidden) addCard(more, s);
     more.hidden = !on;
-    mark.setAttribute('aria-expanded', String(on));
+    dot.setAttribute('aria-expanded', String(on));
     // the new cards appear above the footer: bring them into view
     if (on) more.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   });

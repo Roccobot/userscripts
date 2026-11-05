@@ -34,12 +34,17 @@
   system (`fondo`, `superficie`, `testo`, `testo-secondario`, `linea`, `contorno`, `accento`,
   `testo-accento`, `contenuto-su-accento`). Lega con lo spazio unificatore le parole corte
   (liste IT e EN) alla successiva e l'ultima parola alla precedente (prova sulle righe vere a
-  390 px e sul desktop). L'hub non la ospita perché là non vivono progetti.
+  390 px e sul desktop). Disposizione (istruzioni del 2026-11-05): in testa il marchio
+  `Roccobot.png` (intero, **senza arrotondamenti né maschere**) e il titolo, alti uguali e
+  centrati; sotto, centrata, la sola frase `Collezione di userscript per Violentmonkey.` (EN `A
+  collection of userscripts for Violentmonkey.`) col link a <https://violentmonkey.github.io/>;
+  nel piede, centrati in un solo blocco, le pillole di lingua e tema e il marchio piccolo (solo
+  segno, non un tasto), senza altre righe. L'hub non la ospita perché là non vivono progetti.
   - ⚠️ **I quattro script per adulti (PH, ENF, NSFWA e Fapopedia) non compaiono sulla pagina** (sua
     richiesta del 2026-11-05: *non voglio che appaiano in una pagina pubblica*): in `SCRIPTS` hanno
-    `hidden: true`, e li mostra il marchio nel piede, a destra dopo le pillole di lingua e tema, come
-    un tasto on-off (un secondo tocco li toglie). Il marchio è il glifo disegnato, piccolo, con la
-    zona di tocco di 44 px; non si salva niente, quindi a ogni ricaricamento la pagina torna com'è
+    `hidden: true`, e li mostra un singolo `•` centrato qualche riga sotto il piede, come un
+    tasto on-off (un secondo tocco li toglie; istruzione del 2026-11-05, al posto del marchio). Il
+    `•` ha il colore del testo secondario, niente aspetto da link, zona di tocco di 44 px; non si salva niente, quindi a ogni ricaricamento la pagina torna com'è
     per tutti; le schede si costruiscono al primo tocco, e prima i loro file non sono nemmeno
     richiesti. Uno script nuovo per adulti nasce con `hidden: true`.
   - ⚠️ **È discrezione, non protezione**: i file `.user.js`, il `README.md` e la pagina su GitHub
