@@ -678,9 +678,11 @@ nome del file. Copre `enf-cmnf.cc`, `enfhub.com` e `xhamster.com`.
   remoto non può mandare `Sec-Fetch-Dest: video`** (l'API `browser.downloads` non le espone). Il
   CDN risponde 403; il ripiego in memoria poi salvava col click su un `<a download>` *dopo* gli
   `await`, gesto che Chrome ignora: il tasto andava a **Done** e il file non partiva (segnalato
-  sull'anteprima aperta, 2026-11-05). Dalla **1.6.3** in quel modo si salta il `GM_download`
-  diretto, si scarica con le intestazioni via `GM_xmlhttpRequest` e si salva il blob di nuovo con
-  `GM_download` (privilegiato, senza gesto).
+  sull'anteprima aperta, 2026-11-05). La **1.6.3** scaricava bene in memoria ma il salvataggio del
+  blob falliva ancora allo stesso modo (progresso sì, file in Downloads no). Dalla **1.6.4** il
+  dialogo di salvataggio (`showSaveFilePicker`) si apre *al click*, prima di ogni `await` di rete;
+  dopo il fetch il blob si scrive su quel `FileSystemFileHandle` con `createWritable`, senza
+  bisogno di gesto. Su Firefox, senza picker, resta il ripiego `<a download>` sul blob.
 
 ### 🖼️ Le foto in uno ZIP
 

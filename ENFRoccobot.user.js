@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ENF Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.6.3
+// @version      1.6.4
 // @description  Adds a Download button to enf-cmnf.cc, enfhub.com and xhamster.com that saves the page's videos. On enf-cmnf.cc photo posts a second button packs every full-size image of the post into a single ZIP, built in the script itself with no external library: it takes the widest srcset candidate, retries the un-resized WordPress original (the -800x600 suffix hides a bigger file), skips avatars, icons and thumbnails from the sidebars, downloads a few images at a time and lists the failed ones once at the end. On xhamster it also forces the English site (no language subdomain) and picks the highest resolution on its own, asking only when the same resolution comes in more than one codec. Covers every player the two sites use: direct MP4 (<source> or <video src>), self-hosted HLS on cdn.enf-cmnf.cc, and enfhub's HLS (master.m3u8, read from the player or derived from the poster); HLS is fetched segment by segment and joined into one .ts file. On forum threads it opens a picker that lists the videos in page order with a thumbnail, the post number and the author, lets you tick several of them and downloads them one after the other, writing the post number into each filename. Progress on the button, second click cancels.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -894,13 +894,87 @@
 
   function mb(n) { return (n / 1048576).toFixed(1) + ' MB'; }
 
-  // Save a blob to disk. ⚠️ An <a download> click AFTER an await is often
-  // swallowed by the browser (the user gesture is gone), which is exactly the
-  // "button says Done, nothing arrives" failure: the promise resolved, the
-  // click did nothing. Prefer GM_download on the blob URL (privileged, no
-  // gesture needed); keep the anchor as last resort.
-  function salvaBlob(blob, nome) {
+  // ⚠️⚠️ Save-to-disk after a fetch. Measured 2026-11-05 on Chromium +
+  // Violentmonkey with «Use browser download API»: progress reached 100% and
+  // the button said Done, but nothing landed in Downloads. Cause: the MP4 is
+  // fetched in memory (headers required), then the save step used GM_download
+  // on a blob: URL. In that mode blob/data URLs do NOT go through
+  // browser.downloads; Violentmonkey falls back to an <a download> click, and
+  // Chrome silently ignores that click once the user gesture is gone (every
+  // await between the button and the click eats it). The old code still
+  // resolved the promise, so Done lied.
+  // Fix: open the File System Access save dialog on the click (first await,
+  // gesture still alive), keep the FileSystemFileHandle, and write the blob
+  // with createWritable after the fetch. No gesture needed for the write.
+  // Firefox has no picker: there <a download> on a blob still works without a
+  // gesture, so that stays as the fallback. Never resolve after a no-op click
+  // on Chromium.
+
+  function tipiPerNome(nome) {
+    if (/\.zip$/i.test(nome)) {
+      return [{ description: 'ZIP archive', accept: { 'application/zip': ['.zip'] } }];
+    }
+    if (/\.ts$/i.test(nome)) {
+      return [{ description: 'MPEG-TS video', accept: { 'video/mp2t': ['.ts'], 'video/*': ['.ts'] } }];
+    }
+    return [{ description: 'MP4 video', accept: { 'video/mp4': ['.mp4'], 'video/*': ['.mp4'] } }];
+  }
+
+  // Must run as the FIRST await after the click, or Chromium refuses the dialog.
+  function chiediDoveSalvare(nome) {
     return new Promise(function (risolvi, rifiuta) {
+      if (!SALVA_CON_DIALOGO || typeof window.showSaveFilePicker !== 'function') {
+        risolvi(null);
+        return;
+      }
+      window.showSaveFilePicker({
+        suggestedName: nome,
+        types: tipiPerNome(nome)
+      }).then(risolvi, function (e) {
+        if (e && e.name === 'AbortError') rifiuta(new Error('cancelled'));
+        else risolvi(null);
+      });
+    });
+  }
+
+  // Folder for a multi-video queue: one gesture, then one file per video.
+  function chiediCartella() {
+    return new Promise(function (risolvi, rifiuta) {
+      if (!SALVA_CON_DIALOGO || typeof window.showDirectoryPicker !== 'function') {
+        risolvi(null);
+        return;
+      }
+      window.showDirectoryPicker({ mode: 'readwrite' }).then(risolvi, function (e) {
+        if (e && e.name === 'AbortError') rifiuta(new Error('cancelled'));
+        else risolvi(null);
+      });
+    });
+  }
+
+  function handleInCartella(dir, nome) {
+    return dir.getFileHandle(nome, { create: true });
+  }
+
+  async function scriviHandle(handle, blob) {
+    var w = await handle.createWritable();
+    try {
+      await w.write(blob);
+      await w.close();
+    } catch (e) {
+      try { await w.abort(); } catch (e2) {}
+      throw e;
+    }
+  }
+
+  function salvaBlob(blob, nome, handle) {
+    return new Promise(function (risolvi, rifiuta) {
+      function fallito(e) {
+        rifiuta(e instanceof Error ? e : new Error(String(e || 'save failed')));
+      }
+      if (handle && typeof handle.createWritable === 'function') {
+        Promise.resolve(scriviHandle(handle, blob)).then(function () { risolvi(); }, fallito);
+        return;
+      }
       var url = URL.createObjectURL(blob);
       var chiuso = false;
       function pulisci() {
@@ -919,10 +993,20 @@
           a.click();
           setTimeout(function () { try { a.remove(); } catch (e) {} }, 1000);
           pulisci();
+          // Chromium: without a prior FileSystemFileHandle this click is a
+          // no-op after any await. Claiming success was the Done-without-file
+          // bug. Firefox still honours it, and has no showSaveFilePicker.
+          if (typeof window.showSaveFilePicker === 'function') {
+            fallito(new Error(
+              'could not save the file: the browser blocked the download after the fetch.\n' +
+              'The save dialog should have opened at the start of the download.'
+            ));
+            return;
+          }
           risolvi();
         } catch (e) {
           pulisci();
-          rifiuta(e instanceof Error ? e : new Error(String(e)));
+          fallito(e);
         }
       }
       function unaVolta(fn) {
@@ -940,13 +1024,13 @@
         var h = GM_download({
           url: url,
           name: nome,
-          saveAs: SALVA_CON_DIALOGO,
+          saveAs: false,
           onload: unaVolta(function () { pulisci(); risolvi(); }),
           onerror: unaVolta(function () { viaAncora(); }),
           ontimeout: unaVolta(function () { viaAncora(); }),
           onabort: unaVolta(function () {
             pulisci();
-            rifiuta(new Error('cancelled'));
+            fallito(new Error('cancelled'));
           })
         });
         if (h && typeof h.abort === 'function') manoGM = h;
@@ -993,7 +1077,7 @@
 
   // MP4, ripiego: scaricamento in memoria e salvataggio del blob. Serve se il
   // gestore non applica le intestazioni a GM_download (il CDN risponderebbe 403).
-  function scaricaMp4InMemoria(url, nome, btn) {
+  function scaricaMp4InMemoria(url, nome, btn, handle) {
     return new Promise(function (risolvi, rifiuta) {
       var h = GM_xmlhttpRequest({
         method: 'GET',
@@ -1011,7 +1095,7 @@
         onload: function (r) {
           if (r.status < 200 || r.status >= 300) { rifiuta(new Error('HTTP ' + r.status)); return; }
           mostra(btn, '💾 Saving...');
-          Promise.resolve(salvaBlob(r.response, nome)).then(risolvi, rifiuta);
+          Promise.resolve(salvaBlob(r.response, nome, handle)).then(risolvi, rifiuta);
         },
         onerror: function () { rifiuta(new Error('rete')); },
         ontimeout: function () { rifiuta(new Error('timeout')); }
@@ -1020,7 +1104,7 @@
     });
   }
 
-  async function scaricaMp4(url, nome, btn) {
+  async function scaricaMp4(url, nome, btn, handle) {
     mostra(btn, '⏳ Checking...');
     var prova = await provaSorgente(url);
     if (!prova.ok) {
@@ -1029,10 +1113,10 @@
                       'Referer and Sec-Fetch-Dest headers, which are required here.');
     }
     mostra(btn, '⬇︎ 0%');
-    // Skip direct GM_download when it goes through browser.downloads: that
-    // path cannot carry Sec-Fetch-Dest: video, the CDN returns 403, and the
-    // button still flips to Done. Fetch with headers, then save the blob.
-    if (!gmDownloadViaBrowser()) {
+    // With a FileSystemFileHandle the memory path writes straight to that file.
+    // Without one, try remote GM_download only when it is not the browser API
+    // (that API cannot send Sec-Fetch-Dest: video → CDN 403 → fake Done).
+    if (!handle && !gmDownloadViaBrowser()) {
       try {
         await scaricaMp4ConGM(url, nome, btn);
         return;
@@ -1040,12 +1124,12 @@
         if (annullato) throw e;
       }
     }
-    await scaricaMp4InMemoria(url, nome, btn);
+    await scaricaMp4InMemoria(url, nome, btn, handle);
   }
 
   // HLS: playlist, poi i segmenti in parallelo mantenendo l'ordine, poi un solo
   // file .ts (i segmenti sono MPEG-TS: concatenarli dà un flusso valido).
-  async function scaricaHls(url, nome, btn) {
+  async function scaricaHls(url, nome, btn, handle) {
     mostra(btn, '⏳ Playlist...');
     var testo = await chiedi(url);
     if (/#EXT-X-STREAM-INF/i.test(testo)) {
@@ -1099,7 +1183,7 @@
     if (annullato) throw new Error('cancelled');
 
     mostra(btn, '💾 Saving...');
-    await salvaBlob(new Blob(parti, { type: 'video/mp2t' }), nome);
+    await salvaBlob(new Blob(parti, { type: 'video/mp2t' }), nome, handle);
   }
 
   function annulla(btn) {
@@ -1132,14 +1216,17 @@
   // `rif` = la voce del picker (per il nome del file); `inCoda` sopprime l'alert
   // per-video e restituisce l'errore alla coda, che lo riassume una volta sola:
   // sette video andati male sarebbero sette finestre da chiudere.
-  async function scarica(url, indice, totale, btn, rif, inCoda) {
+  async function scarica(url, indice, totale, btn, rif, inCoda, handleGia) {
     if (inCorso && !inCoda) { annulla(btn); return true; }
     inCorso = true; annullato = false; manoGM = null; tastoAttivo = btn;
     if (btn) btn.title = 'Click again to cancel';
     var nome = nomeFile(url, indice, totale, rif);
+    var handle = handleGia || null;
     try {
-      if (eHls(url)) await scaricaHls(url, nome, btn);
-      else await scaricaMp4(url, nome, btn);
+      // First await after the click: open the save dialog while the gesture lives.
+      if (!handle) handle = await chiediDoveSalvare(nome);
+      if (eHls(url)) await scaricaHls(url, nome, btn, handle);
+      else await scaricaMp4(url, nome, btn, handle);
       if (annullato) return false;
       mostra(btn, '✅ Done', COLORE_OK);
       if (!inCoda) setTimeout(function () { if (!inCorso) riposo(btn); }, 6000);
@@ -1147,6 +1234,11 @@
     } catch (e) {
       if (annullato) return false;
       var msg = (e && e.message) ? e.message : String(e);
+      if (msg === 'cancelled') {
+        mostra(btn, '✖︎ cancelled', COLORE_KO);
+        if (!inCoda) setTimeout(function () { if (!inCorso) riposo(btn); }, 3000);
+        return false;
+      }
       mostra(btn, '⚠️ Error', COLORE_KO);
       if (inCoda) return msg;
       alert('ENF Roccobot: download failed.\n' + msg + '\n\nSource:\n' + url);
@@ -1163,10 +1255,31 @@
   // calpesterebbero, col secondo che annulla la mano del primo.
   async function scaricaScelti(voci, btn) {
     var errori = [];
+    // One folder dialog on the click that started the queue; later videos have
+    // no user gesture left for showSaveFilePicker.
+    var cartella = null;
+    try {
+      if (voci.length > 1) cartella = await chiediCartella();
+    } catch (e) {
+      if ((e && e.message) === 'cancelled') {
+        mostra(btn, '✖︎ cancelled', COLORE_KO);
+        setTimeout(function () { if (!inCorso) riposo(btn); }, 3000);
+        return;
+      }
+    }
     for (var i = 0; i < voci.length; i++) {
       if (annullato) break;
       etichettaCoda = voci.length > 1 ? '[' + (i + 1) + '/' + voci.length + '] ' : '';
-      var esito = await scarica(voci[i].url, voci[i].indice - 1, voci.length, btn, voci[i], true);
+      var handleVoce = null;
+      if (cartella) {
+        try {
+          handleVoce = await handleInCartella(cartella, nomeFile(voci[i].url, voci[i].indice - 1, voci.length, voci[i]));
+        } catch (e) {
+          errori.push('· ' + (voci[i].post || ('#' + voci[i].indice)) + ': ' + ((e && e.message) || e));
+          continue;
+        }
+      }
+      var esito = await scarica(voci[i].url, voci[i].indice - 1, voci.length, btn, voci[i], true, handleVoce);
       if (typeof esito === 'string') errori.push('· ' + (voci[i].post || ('#' + voci[i].indice)) + ': ' + esito);
       if (annullato) break;
     }
@@ -1285,6 +1398,18 @@
     }
     inCorso = true; annullato = false; manoGM = null; tastoAttivo = btn;
     if (btn) btn.title = 'Click again to cancel';
+    var handleZip = null;
+    try {
+      handleZip = await chiediDoveSalvare(nomeZip());
+    } catch (e) {
+      inCorso = false; manoGM = null; tastoAttivo = null;
+      if ((e && e.message) === 'cancelled') {
+        mostra(btn, '✖︎ cancelled', COLORE_KO);
+        setTimeout(function () { if (!inCorso) riposoImg(btn); }, 3000);
+        return;
+      }
+      throw e;
+    }
     barra(btn, 0, '⬇︎ 0/' + voci.length);
 
     var presi = new Array(voci.length), errori = [], prossimo = 0, fatti = 0, byte = 0;
@@ -1326,7 +1451,7 @@
       var archivio = zipDaVoci(dentro);
 
       mostra(btn, '💾 Saving...');
-      await salvaBlob(archivio, nomeZip());
+      await salvaBlob(archivio, nomeZip(), handleZip);
 
       if (errori.length) {
         mostra(btn, '⚠️ ' + errori.length + ' failed', COLORE_KO);
