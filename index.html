@@ -1,56 +1,119 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Roccobot userscripts</title>
-<meta name="description" content="Roccobot's userscripts for Violentmonkey and Tampermonkey, one tap from install.">
+<title>Userscript di Roccobot</title>
+<meta name="description" content="Gli userscript di Roccobot per Violentmonkey e Tampermonkey, un tocco dall'installazione.">
 <link rel="icon" href="Roccobot.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap">
 <!--
   The install page of Roccobot's userscripts. The list of scripts lives in SCRIPTS below and
   nowhere else; each version is read at runtime from the script's own @version, so the page
-  never shows a stale number. Every text reaches the page through textContent.
-  Author: Rocco Casadei, a.k.a. Roccobot
+  never shows a stale number. Every text reaches the page through textContent. Theme and
+  language follow the system on open; the footer controls flip them for this visit only,
+  with nothing stored. Author: Rocco Casadei, a.k.a. Roccobot
 -->
 <style>
   :root {
-    color-scheme: light dark;
-    --fg: #16232b; --bg: #f4f6f7; --card: #fff; --line: #dfe4e7; --sub: #5d6d76; --acc: #1f5562; --on-acc: #fff;
+    color-scheme: light;
+    --turchese: #43b59e;
+    --petrolio: #00727b;
+    --accento: var(--turchese);
+    --contenuto-su-accento: #00382f;
+    --testo-accento: #0b6b5b;
+    --fondo: #fcfbf8;
+    --superficie: #fffefc;
+    --testo: #1a1c1b;
+    --testo-secondario: #5b6360;
+    --contorno: #79817d;
+    --linea: #dad9d5;
+    --raggio-pieno: 999px;
+    --raggio-scheda-web: 14px;
+    --tipo: Archivo, "Helvetica Neue", Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --fg: #e9eef0; --bg: #141b1f; --card: #1c262b; --line: #2c383e; --sub: #9aa9b1; --acc: #7fd0e0; --on-acc: #0f1a1e; }
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --accento: var(--petrolio);
+      --contenuto-su-accento: #ffffff;
+      --testo-accento: #4fd9be;
+      --fondo: #151b1a;
+      --superficie: #1e2523;
+      --testo: #e4e9e7;
+      --testo-secondario: #a9b3b0;
+      --contorno: #8a9490;
+      --linea: #3c4442;
+    }
   }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --accento: var(--petrolio);
+    --contenuto-su-accento: #ffffff;
+    --testo-accento: #4fd9be;
+    --fondo: #151b1a;
+    --superficie: #1e2523;
+    --testo: #e4e9e7;
+    --testo-secondario: #a9b3b0;
+    --contorno: #8a9490;
+    --linea: #3c4442;
+  }
+  /* two languages, one shown: Italian when data-lang is absent or "it"; English when "en" */
+  :root:not([data-lang="en"]) [lang="en"], :root[data-lang="en"] [lang="it"]:not(html) { display: none !important; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0; background: var(--fondo); color: var(--testo);
+    font: 400 1rem/1.45 var(--tipo); -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
   main { max-width: 46rem; margin: 0 auto; padding: 2rem 1rem 3rem; }
   header { display: flex; align-items: center; gap: .9rem; margin-bottom: .6rem; }
   header img { width: 3rem; height: 3rem; border-radius: 12px; }
-  h1 { font-size: 1.5rem; margin: 0; }
+  h1 { font-size: 1.5rem; margin: 0; font-weight: 600; letter-spacing: -.01em; }
   p { text-wrap: pretty; }
-  .intro { color: var(--sub); margin: 0 0 1.6rem; }
+  .intro { color: var(--testo-secondario); margin: 0 0 1.6rem; }
   .list { display: grid; gap: .9rem; }
   .card {
-    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--raggio-scheda-web);
     padding: 1rem 1.1rem; display: grid; grid-template-columns: 1fr auto; gap: .2rem 1rem; align-items: center;
   }
   .name { font-weight: 700; font-size: 1.05rem; margin: 0; }
-  .ver { color: var(--sub); font-weight: 400; font-size: .85rem; margin-left: .4rem; white-space: nowrap; }
-  .site { grid-column: 1; color: var(--acc); font-size: .85rem; margin: 0; }
+  .ver { color: var(--testo-secondario); font-weight: 400; font-size: .85rem; margin-left: .4rem; white-space: nowrap; }
+  .site { grid-column: 1; color: var(--testo-accento); font-size: .85rem; margin: 0; }
   .blurb { grid-column: 1 / -1; margin: .35rem 0 0; }
   .more { grid-column: 1 / -1; font-size: .85rem; margin: .2rem 0 0; }
-  .more a { color: var(--sub); }
+  .more a { color: var(--testo-secondario); }
   .install {
     grid-column: 2; grid-row: 1 / span 2; text-decoration: none; font-weight: 700;
-    background: var(--acc); color: var(--on-acc); border-radius: 999px; padding: .65rem 1.1rem;
+    background: var(--accento); color: var(--contenuto-su-accento); border-radius: var(--raggio-pieno); padding: .65rem 1.1rem;
     min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap;
   }
-  .install:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
-  footer { color: var(--sub); font-size: .85rem; margin-top: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  footer p { margin: 0; }
-  footer a { color: var(--sub); }
+  .install:focus-visible, .ctl:focus-visible, .mark:focus-visible {
+    outline: 2px solid var(--testo-accento); outline-offset: 2px;
+  }
+  footer {
+    color: var(--testo-secondario); font-size: .85rem; margin-top: 2rem;
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
+  }
+  footer p { margin: 0; flex: 1 1 auto; min-width: 12rem; }
+  footer a { color: var(--testo-secondario); }
+  .foot-ctls { display: flex; align-items: center; gap: .35rem; flex: none; margin-left: auto; }
+  /* Compact pills in the footer: icon (and short language code), 44 px touch, full radius.
+     Shorter than the design-page labeled pills so they sit beside the mark without crowding. */
+  .ctl {
+    display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+    min-width: 44px; min-height: 44px; padding: 0 .7rem;
+    border: 1px solid var(--contorno); border-radius: var(--raggio-pieno);
+    background: var(--superficie); color: var(--testo); font: 600 .8125rem/1 var(--tipo);
+    white-space: nowrap; cursor: pointer;
+  }
+  .ctl:hover { border-color: var(--testo-accento); }
+  .ctl svg { width: 1.1rem; height: 1.1rem; flex: none; }
+  .ctl-stack { display: inline-grid; }
+  .ctl-stack > span { grid-area: 1 / 1; visibility: hidden; }
+  .ctl-stack > span[data-on] { visibility: visible; }
   /* A display rule would beat the UA's [hidden], so the attribute is made to win */
   [hidden] { display: none !important; }
   .list + .list { margin-top: .9rem; }
@@ -58,54 +121,99 @@
      margins keep that area from making the footer taller or pushing the mark off the right edge */
   .mark {
     flex: none; width: 2.75rem; height: 2.75rem; margin: -.9rem -.8rem -.9rem 0; padding: 0;
-    display: grid; place-items: center; background: none; border: 0; color: var(--sub); cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    display: grid; place-items: center; background: none; border: 0; color: var(--testo-secondario); cursor: pointer;
   }
   .mark svg { width: 1.1rem; height: auto; }
-  .mark[aria-expanded="true"] { color: var(--acc); }
-  .mark:focus-visible { outline: 2px solid var(--acc); outline-offset: -4px; border-radius: 10px; }
+  .mark[aria-expanded="true"] { color: var(--testo-accento); }
+  .mark:focus-visible { outline-offset: -4px; border-radius: 10px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ctl { transition: background-color .16s, border-color .16s, color .16s; }
+  }
 </style>
 </head>
 <body>
 <main>
   <header>
     <img src="Roccobot.png" alt="">
-    <h1>Roccobot userscripts</h1>
+    <h1><span lang="it">Userscript di Roccobot</span><span lang="en">Roccobot userscripts</span></h1>
   </header>
-  <p class="intro">Install Violentmonkey or Tampermonkey first, then tap Install: the manager opens its own install page, and updates arrive by themselves.</p>
+  <p class="intro">
+    <span lang="it">Installa prima Violentmonkey o Tampermonkey, poi tocca Installa: il gestore apre la sua pagina d'installazione, e gli aggiornamenti arrivano da soli.</span>
+    <span lang="en">Install Violentmonkey or Tampermonkey first, then tap Install: the manager opens its own install page, and updates arrive by themselves.</span>
+  </p>
   <div class="list" id="list"></div>
   <div class="list" id="more" hidden></div>
   <footer>
-    <p>Source code and full notes on <a href="https://github.com/Roccobot/userscripts">GitHub</a>.</p>
-    <button class="mark" id="mark" type="button" aria-label="Roccobot" aria-controls="more" aria-expanded="false"><svg viewBox="10 8 160 145" aria-hidden="true"><path d="M103.08,73.5h57.41l-4.92-61.87H24.67v15.55h57.09c-.82,11.19-1.97,21.3-3.61,30.62H20.24l4.43,15.7h49.7c-2.46,8.39-5.41,15.55-9.02,21.3-10.01,15.86-26.9,29.69-50.85,41.35l10.99,13.37c26.25-13.68,44.95-29.69,55.94-48.19,3.28-5.6,6.07-12.28,8.69-20.05,12.14,29.23,33.79,51.92,65.12,68.24l10.83-13.37c-30.51-14.77-51.51-35.6-62.99-62.65ZM99.14,27.18h42.71l1.34,30.62h-47.67c1.48-9.02,2.62-19.28,3.61-30.62Z" fill="currentColor" fill-rule="evenodd"/></svg></button>
+    <p>
+      <span lang="it">Codice sorgente e note complete su <a href="https://github.com/Roccobot/userscripts">GitHub</a>.</span>
+      <span lang="en">Source code and full notes on <a href="https://github.com/Roccobot/userscripts">GitHub</a>.</span>
+    </p>
+    <div class="foot-ctls">
+      <button class="ctl lang" id="lang" type="button" aria-label="Mostra la pagina in inglese">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c2.6 2.6 2.6 14.4 0 17M12 3.5c-2.6 2.6-2.6 14.4 0 17" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span class="ctl-stack" id="lang-code"><span>EN</span><span>IT</span></span>
+      </button>
+      <button class="ctl theme" id="theme" type="button" aria-label="Passa al tema scuro">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>
+      </button>
+      <button class="mark" id="mark" type="button" aria-label="Roccobot" aria-controls="more" aria-expanded="false"><svg viewBox="10 8 160 145" aria-hidden="true"><path d="M103.08,73.5h57.41l-4.92-61.87H24.67v15.55h57.09c-.82,11.19-1.97,21.3-3.61,30.62H20.24l4.43,15.7h49.7c-2.46,8.39-5.41,15.55-9.02,21.3-10.01,15.86-26.9,29.69-50.85,41.35l10.99,13.37c26.25-13.68,44.95-29.69,55.94-48.19,3.28-5.6,6.07-12.28,8.69-20.05,12.14,29.23,33.79,51.92,65.12,68.24l10.83-13.37c-30.51-14.77-51.51-35.6-62.99-62.65ZM99.14,27.18h42.71l1.34,30.62h-47.67c1.48-9.02,2.62-19.28,3.61-30.62Z" fill="currentColor" fill-rule="evenodd"/></svg></button>
+    </div>
   </footer>
 </main>
 <script>
   'use strict';
-  // The one list of scripts: file name, title as in @name, where it works, what it does,
-  // and its section of the README. A script marked `hidden` is not on the page until the mark
-  // in the footer is tapped, and goes away again with a second tap.
+  // The one list of scripts: file name, title as in @name, where it works (IT/EN), what it does
+  // (IT/EN), and its section of the README. A script marked `hidden` is not on the page until the
+  // mark in the footer is tapped, and goes away again with a second tap.
   const SCRIPTS = [
-    { file: 'DIVRoccobot.user.js', name: 'Decent Image Viewer', site: 'Any image opened in the browser',
-      blurb: 'A better viewer for images: fit or real size, zoom with wheel, pinch or keys, pan, a navigator and its own right-click menu. Works on local files and SVG too.',
+    { file: 'DIVRoccobot.user.js', name: 'Decent Image Viewer',
+      site: { it: 'Qualsiasi immagine aperta nel browser', en: 'Any image opened in the browser' },
+      blurb: {
+        it: 'Un visualizzatore migliore per le immagini: adatta alla finestra o dimensione reale, zoom con rotella, pinch o tasti, panoramica, un navigatore e il suo menu del tasto destro. Funziona anche sui file locali e sugli SVG.',
+        en: 'A better viewer for images: fit or real size, zoom with wheel, pinch or keys, pan, a navigator and its own right-click menu. Works on local files and SVG too.'
+      },
       readme: 'decent-image-viewer' },
-    { file: 'QwantRoccobot.user.js', name: 'Qwant Roccobot', site: 'qwant.com',
-      blurb: 'A cleaner Qwant without ads, promos or clutter. Image results open the original file, and on a phone they become a carousel you swipe.',
+    { file: 'QwantRoccobot.user.js', name: 'Qwant Roccobot',
+      site: { it: 'qwant.com', en: 'qwant.com' },
+      blurb: {
+        it: 'Un Qwant più pulito, senza annunci, promozioni né disordine. I risultati delle immagini aprono il file originale, e sul telefono diventano un carosello da scorrere.',
+        en: 'A cleaner Qwant without ads, promos or clutter. Image results open the original file, and on a phone they become a carousel you swipe.'
+      },
       readme: 'qwant-roccobot' },
-    { file: 'PHRoccobot.user.js', name: 'PH Roccobot', site: 'pornhub.com', hidden: true,
-      blurb: 'Keeps the site in English, skips the ad before the video and adds a button that downloads it at the best quality.',
+    { file: 'PHRoccobot.user.js', name: 'PH Roccobot',
+      site: { it: 'pornhub.com', en: 'pornhub.com' }, hidden: true,
+      blurb: {
+        it: 'Mantiene il sito in inglese, salta l\'annuncio prima del video e aggiunge un tasto che lo scarica alla qualità migliore.',
+        en: 'Keeps the site in English, skips the ad before the video and adds a button that downloads it at the best quality.'
+      },
       readme: 'ph-roccobot' },
-    { file: 'ENFRoccobot.user.js', name: 'ENF Roccobot', site: 'enf-cmnf.cc, enfhub.com, xhamster.com', hidden: true,
-      blurb: 'Download buttons for the videos, and every full-size photo of a post in one ZIP.',
+    { file: 'ENFRoccobot.user.js', name: 'ENF Roccobot',
+      site: { it: 'enf-cmnf.cc, enfhub.com, xhamster.com', en: 'enf-cmnf.cc, enfhub.com, xhamster.com' }, hidden: true,
+      blurb: {
+        it: 'Tasti di download per i video, e ogni foto a piena risoluzione di un post in uno ZIP.',
+        en: 'Download buttons for the videos, and every full-size photo of a post in one ZIP.'
+      },
       readme: 'enf-roccobot' },
-    { file: 'NSFWARoccobot.user.js', name: 'NSFWA Roccobot', site: 'nsfwalbum.com', hidden: true,
-      blurb: 'Real images you can open and save again, and a whole album at full resolution in one ZIP.',
+    { file: 'NSFWARoccobot.user.js', name: 'NSFWA Roccobot',
+      site: { it: 'nsfwalbum.com', en: 'nsfwalbum.com' }, hidden: true,
+      blurb: {
+        it: 'Immagini vere che si possono riaprire e salvare, e un album intero a piena risoluzione in uno ZIP.',
+        en: 'Real images you can open and save again, and a whole album at full resolution in one ZIP.'
+      },
       readme: 'nsfwa-roccobot' },
-    { file: 'FapopediaRoccobot.user.js', name: 'Fapopedia Roccobot', site: 'fapopedia.net', hidden: true,
-      blurb: 'Every image of a gallery at full resolution, in one ZIP.',
+    { file: 'FapopediaRoccobot.user.js', name: 'Fapopedia Roccobot',
+      site: { it: 'fapopedia.net', en: 'fapopedia.net' }, hidden: true,
+      blurb: {
+        it: 'Ogni immagine di una galleria a piena risoluzione, in uno ZIP.',
+        en: 'Every image of a gallery at full resolution, in one ZIP.'
+      },
       readme: 'fapopedia-roccobot' },
-    { file: 'LotRWikiRoccobot.user.js', name: 'LotRWiki Roccobot', site: 'lotr.fandom.com',
-      blurb: 'A lighter Tolkien wiki: no giant background, ads, side rail or oversized footer. The articles stay as they are.',
+    { file: 'LotRWikiRoccobot.user.js', name: 'LotRWiki Roccobot',
+      site: { it: 'lotr.fandom.com', en: 'lotr.fandom.com' },
+      blurb: {
+        it: 'Una wiki di Tolkien più leggera: niente sfondo gigante, annunci, barra laterale né piede spropositato. Gli articoli restano come sono.',
+        en: 'A lighter Tolkien wiki: no giant background, ads, side rail or oversized footer. The articles stay as they are.'
+      },
       readme: 'lotrwiki-roccobot' }
   ];
 
@@ -116,17 +224,27 @@
     return n;
   }
 
+  // Dual-language block: both strings sit in the tree; CSS shows the active one.
+  function bilingual(tag, cls, it, en) {
+    const n = el(tag, cls);
+    const a = el('span', '', it); a.lang = 'it';
+    const b = el('span', '', en); b.lang = 'en';
+    n.append(a, b);
+    return n;
+  }
+
   // No paragraph line may end on a short word, nor leave a short word alone at the end:
   // short words are tied to the next one, and the last word to the one before, with a
-  // no-break space (U+00A0).
-  // The lookbehind does not consume the space before a word, so back-to-back short words
-  // ('of a post') are all tied in one pass.
-  const CORTE = /(?<=^|\s)(a|an|the|of|to|in|on|or|and|by|its|at|for|it|is|no|you)\s+/gi;
+  // no-break space (U+00A0). Italian and English lists share one pass.
+  const CORTE = /(?<=^|\s)(a|an|the|of|to|in|on|or|and|by|its|at|for|it|is|no|you|il|lo|la|i|le|gli|di|da|su|e|o|un|una|per|con|del|della|dei|delle|al|alla|ai|alle|nel|nella|nei|nelle|sul|sulla|sui|sulle|ed|od|che|non|si|ci|vi|ne|mi|ti|ma|se|tra|fra)\s+/gi;
   function lega(t) {
-    return t.replace(CORTE, '$1 ').replace(/\s+(\S+)$/, ' $1');
+    return t.replace(CORTE, '$1\u00A0').replace(/\s+(\S+)$/, '\u00A0$1');
   }
-  const intro = document.querySelector('.intro');
-  intro.textContent = lega(intro.textContent);
+
+  // Tie short words inside every static bilingual span once, at load.
+  document.querySelectorAll('[lang="it"], [lang="en"]').forEach(function (n) {
+    if (n.children.length === 0 && n.textContent) n.textContent = lega(n.textContent);
+  });
 
   // One card per script, added to the given list
   function addCard(list, s) {
@@ -134,14 +252,30 @@
     const name = el('h2', 'name', s.name);
     const ver = el('span', 'ver');
     name.appendChild(ver);
-    const install = el('a', 'install', 'Install');
+    const install = el('a', 'install');
     install.href = s.file;
-    install.setAttribute('aria-label', 'Install ' + s.name);
+    install.append(
+      Object.assign(el('span', '', 'Installa'), { lang: 'it' }),
+      Object.assign(el('span', '', 'Install'), { lang: 'en' })
+    );
+    install.setAttribute('data-label-it', 'Installa ' + s.name);
+    install.setAttribute('data-label-en', 'Install ' + s.name);
+    install.setAttribute('aria-label',
+      (document.documentElement.getAttribute('data-lang') === 'en' ? 'Install ' : 'Installa ') + s.name);
     const more = el('p', 'more');
-    const link = el('a', '', 'Details');
+    const link = el('a', '');
     link.href = 'https://github.com/Roccobot/userscripts#' + s.readme;
+    link.append(
+      Object.assign(el('span', '', 'Dettagli'), { lang: 'it' }),
+      Object.assign(el('span', '', 'Details'), { lang: 'en' })
+    );
     more.appendChild(link);
-    card.append(name, install, el('p', 'site', s.site), el('p', 'blurb', lega(s.blurb)), more);
+    card.append(
+      name, install,
+      bilingual('p', 'site', lega(s.site.it), lega(s.site.en)),
+      bilingual('p', 'blurb', lega(s.blurb.it), lega(s.blurb.en)),
+      more
+    );
     list.appendChild(card);
     // the version comes from the script itself: one source, never stale
     fetch(s.file, { cache: 'no-cache' })
@@ -154,6 +288,85 @@
   }
 
   for (const s of SCRIPTS) if (!s.hidden) addCard(document.getElementById('list'), s);
+
+  // Theme and language. Both follow the system (or the browser language) on open. The footer
+  // buttons and the T / L keys flip them for this visit only: nothing is stored, so a reload
+  // brings the page back to the system choice. Keys win everywhere except while typing in a field.
+  (function () {
+    var root = document.documentElement;
+    var themeBtn = document.getElementById('theme');
+    var langBtn = document.getElementById('lang');
+    var langCode = document.getElementById('lang-code');
+    var meta = document.querySelector('meta[name="description"]');
+    var title = document.querySelector('title');
+    var media = window.matchMedia('(prefers-color-scheme: dark)');
+    var TEXT = {
+      it: {
+        toDark: 'Passa al tema scuro', toLight: 'Passa al tema chiaro',
+        code: 'EN', toOther: 'Mostra la pagina in inglese',
+        desc: 'Gli userscript di Roccobot per Violentmonkey e Tampermonkey, un tocco dall\'installazione.',
+        title: 'Userscript di Roccobot'
+      },
+      en: {
+        toDark: 'Switch to the dark theme', toLight: 'Switch to the light theme',
+        code: 'IT', toOther: 'Show the page in Italian',
+        desc: "Roccobot's userscripts for Violentmonkey and Tampermonkey, one tap from install.",
+        title: 'Roccobot userscripts'
+      }
+    };
+    function lang() { return root.getAttribute('data-lang') === 'en' ? 'en' : 'it'; }
+    function theme() {
+      var t = root.getAttribute('data-theme');
+      return t === 'dark' || t === 'light' ? t : (media.matches ? 'dark' : 'light');
+    }
+    function show(stack, text) {
+      Array.prototype.forEach.call(stack.children, function (c) {
+        c.toggleAttribute('data-on', c.textContent === text);
+      });
+    }
+    function paint() {
+      var w = TEXT[lang()], dark = theme() === 'dark';
+      themeBtn.setAttribute('aria-label', dark ? w.toLight : w.toDark);
+      show(langCode, w.code);
+      langBtn.setAttribute('aria-label', w.toOther);
+      meta.setAttribute('content', w.desc);
+      title.textContent = w.title;
+      document.querySelectorAll('[data-label-it][data-label-en]').forEach(function (el) {
+        el.setAttribute('aria-label', el.getAttribute('data-label-' + lang()));
+      });
+    }
+    function setLang(l) {
+      root.setAttribute('lang', l);
+      if (l === 'en') root.setAttribute('data-lang', 'en'); else root.removeAttribute('data-lang');
+      paint();
+    }
+    function flipTheme() {
+      root.setAttribute('data-theme', theme() === 'dark' ? 'light' : 'dark');
+      paint();
+    }
+    function flipLang() { setLang(lang() === 'en' ? 'it' : 'en'); }
+    function typing(el) {
+      if (!el) return false;
+      var tag = el.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+    }
+    themeBtn.addEventListener('click', flipTheme);
+    langBtn.addEventListener('click', flipLang);
+    window.addEventListener('keydown', function (ev) {
+      var k = ev.key ? ev.key.toLowerCase() : '';
+      if (k !== 't' && k !== 'l') return;
+      if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.shiftKey || ev.repeat) return;
+      if (typing(ev.target) || typing(document.activeElement)) return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      if (k === 't') flipTheme(); else flipLang();
+    }, true);
+    media.addEventListener('change', paint);
+    // Open from the browser language: Italian when it starts with "it", English otherwise.
+    // No URL parameter, no storage: a reload asks the browser again.
+    var browserIt = (navigator.language || '').toLowerCase().indexOf('it') === 0;
+    setLang(browserIt ? 'it' : 'en');
+  })();
 
   // The mark in the footer is an on-off key for the hidden scripts. Nothing is stored: a reload
   // brings the page back as everyone sees it. The cards are built the first time they are shown,

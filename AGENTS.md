@@ -289,11 +289,15 @@ Un file più specifico vince **dove parla**, e il suo silenzio non è una deroga
 
 ## 🧭 Il nucleo di `userscripts`
 
-- **Che cosa c'è qui**: gli userscript per Tampermonkey (`*.user.js`), la pagina delle opzioni
-  di 'Decent Image Viewer' (`DIVOptions.html`) e la sonda `ScrollProbe.html`. Il repo è servito
-  da Pages a `https://roccobot.github.io/userscripts/`, e ogni script si installa e si aggiorna
-  dal suo URL, scritto in `@updateURL` e `@downloadURL` (`Rules.md` § '🧩 Userscript
-  (`/userscripts`)').
+- **Che cosa c'è qui**: gli userscript per Tampermonkey (`*.user.js`), la pagina d'installazione
+  (`index.html`), la pagina delle opzioni di 'Decent Image Viewer' (`DIVOptions.html`) e la sonda
+  `ScrollProbe.html`. Il repo è servito da Pages a `https://roccobot.github.io/userscripts/`, e
+  ogni script si installa e si aggiorna dal suo URL, scritto in `@updateURL` e `@downloadURL`
+  (`Rules.md` § '🧩 Userscript (`/userscripts`)').
+- **Pagina d'installazione bilingue**: `index.html` apre nella lingua del browser e nel tema di
+  sistema; nel piede, prima del marchio, due pillole cambiano lingua e tema (`L` / `T`) solo per
+  la visita, senza memorizzare niente. Eccezione dichiarata alla vecchia 'solo inglese'; il
+  clic sul marchio che mostra/nasconde gli script `hidden` resta invariato (`Rules.md`).
 - **Ramo principale `main`**; il go-live segue il nucleo universale.
 - **Versione SemVer**, con la fonte unica nel `@version` dell'intestazione di ogni script:
   `patch` per i fix e i commenti, `minor` per le funzioni nuove, `major` per un cambio che

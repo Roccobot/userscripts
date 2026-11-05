@@ -23,17 +23,25 @@
   vive **solo** in `SCRIPTS`, in testa al suo script, e la versione la legge la pagina dal
   `@version` del file, quindi un aggiornamento non la tocca. ⚠️ **Uno script nuovo entra in
   `SCRIPTS`** nello stesso commit, con nome, sito, una frase su che cosa fa e la sezione del
-  `README.md`; uno script tolto ne esce. La pagina è in inglese come le interfacce degli script,
-  e lega con lo spazio unificatore le parole corte alla successiva e l'ultima parola alla
-  precedente (prova sulle righe vere a 390 px e sul desktop). L'hub non la ospita perché là non
-  vivono progetti.
+  `README.md`; uno script tolto ne esce. ⚠️ **La pagina è bilingue** (italiano e inglese; decisione
+  del 2026-11-05: eccezione dichiarata rispetto alla vecchia 'solo inglese'): all'apertura segue
+  la lingua del browser (`navigator.language` che comincia per `it` → italiano, altrimenti
+  inglese) e il tema di sistema (`prefers-color-scheme`); nel piede, **prima** del marchio, due
+  pillole compatte cambiano lingua e tema (tasti `L` e `T`, non mentre si digita in un campo).
+  ⚠️ **Niente memoria**: il cambio vale solo per la visita; al ricaricamento tornano lingua del
+  browser e tema di sistema (niente `localStorage`, `sessionStorage`, cookie né parametro URL).
+  I testi vivono in doppia copia con `lang="it"` / `lang="en"`; i colori usano i token del design
+  system (`fondo`, `superficie`, `testo`, `testo-secondario`, `linea`, `contorno`, `accento`,
+  `testo-accento`, `contenuto-su-accento`). Lega con lo spazio unificatore le parole corte
+  (liste IT e EN) alla successiva e l'ultima parola alla precedente (prova sulle righe vere a
+  390 px e sul desktop). L'hub non la ospita perché là non vivono progetti.
   - ⚠️ **I quattro script per adulti (PH, ENF, NSFWA e Fapopedia) non compaiono sulla pagina** (sua
     richiesta del 2026-11-05: *non voglio che appaiano in una pagina pubblica*): in `SCRIPTS` hanno
-    `hidden: true`, e li mostra il marchio nel piede, a destra, come un tasto on-off (un secondo
-    tocco li toglie). Il marchio è il glifo disegnato, piccolo, con la zona di tocco di 44 px; non si
-    salva niente, quindi a ogni ricaricamento la pagina torna com'è per tutti; le schede si
-    costruiscono al primo tocco, e prima i loro file non sono nemmeno richiesti. Uno script nuovo
-    per adulti nasce con `hidden: true`.
+    `hidden: true`, e li mostra il marchio nel piede, a destra dopo le pillole di lingua e tema, come
+    un tasto on-off (un secondo tocco li toglie). Il marchio è il glifo disegnato, piccolo, con la
+    zona di tocco di 44 px; non si salva niente, quindi a ogni ricaricamento la pagina torna com'è
+    per tutti; le schede si costruiscono al primo tocco, e prima i loro file non sono nemmeno
+    richiesti. Uno script nuovo per adulti nasce con `hidden: true`.
   - ⚠️ **È discrezione, non protezione**: i file `.user.js`, il `README.md` e la pagina su GitHub
     restano pubblici, e il nome dei quattro script compare nel sorgente della pagina.
 - **Icona di DEFAULT per ogni userscript (istruzione dell'utente, 2026-07-26):
