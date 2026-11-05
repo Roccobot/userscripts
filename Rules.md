@@ -27,6 +27,15 @@
   e lega con lo spazio unificatore le parole corte alla successiva e l'ultima parola alla
   precedente (prova sulle righe vere a 390 px e sul desktop). L'hub non la ospita perché là non
   vivono progetti.
+  - ⚠️ **I quattro script per adulti (PH, ENF, NSFWA e Fapopedia) non compaiono sulla pagina** (sua
+    richiesta del 2026-11-05: *non voglio che appaiano in una pagina pubblica*): in `SCRIPTS` hanno
+    `hidden: true`, e li mostra il marchio nel piede, a destra, come un tasto on-off (un secondo
+    tocco li toglie). Il marchio è il glifo disegnato, piccolo, con la zona di tocco di 44 px; non si
+    salva niente, quindi a ogni ricaricamento la pagina torna com'è per tutti; le schede si
+    costruiscono al primo tocco, e prima i loro file non sono nemmeno richiesti. Uno script nuovo
+    per adulti nasce con `hidden: true`.
+  - ⚠️ **È discrezione, non protezione**: i file `.user.js`, il `README.md` e la pagina su GitHub
+    restano pubblici, e il nome dei quattro script compare nel sorgente della pagina.
 - **Icona di DEFAULT per ogni userscript (istruzione dell'utente, 2026-07-26):
   sempre la stessa, `Roccobot.png` alla radice di questo repo.** Va messa nell'intestazione di
   ogni script, nuovo o esistente, senza chiedere:
