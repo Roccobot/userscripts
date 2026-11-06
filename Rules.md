@@ -674,7 +674,7 @@ nome del file. Copre `enf-cmnf.cc`, `enfhub.com` e `xhamster.com`.
   `Unexpected token '<'`: è il banco, non lo script, e si distingue caricando la pagina da sola.
   ⚠️ E un HLS **non passa da `GM_download`** ma da `GM_xmlhttpRequest`: un banco che guarda solo
   il primo dà per non trovato un video che è stato trovato.
-- ⚠️⚠️ **Da Violentmonkey 2.45+, se è attiva «Use browser download API», `GM_download` sull'MP4
+- ⚠️⚠️ **Da Violentmonkey 2.45+, se è attiva `Use browser download API`, `GM_download` sull'MP4
   remoto non può mandare `Sec-Fetch-Dest: video`** (l'API `browser.downloads` non le espone). Il
   CDN risponde 403; il ripiego in memoria poi salvava col click su un `<a download>` *dopo* gli
   `await`, gesto che Chrome ignora: il tasto andava a **Done** e il file non partiva (segnalato
