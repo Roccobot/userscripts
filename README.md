@@ -248,7 +248,9 @@ originali via `GM_xmlhttpRequest` come `ArrayBuffer` (con barra di avanzamento s
 pulsante) e li impacchetta in uno **ZIP creato da un writer interno** (metodo
 *store*, senza compressione: le JPEG sono già compresse). I file nello ZIP
 mantengono la numerazione originale (`0001.jpg`, `0002.jpg`...). Nessun dato lascia
-il sito: solo download.
+il sito: solo download. Dalla 1.3.3, a ZIP pronto il pulsante diventa
+**'💾 Save'**: un secondo tocco salva il file. Serve al telefono, dove il
+browser accetta il salvataggio solo dentro un tocco.
 
 > **Nota tecnica (dalla v1.1.0):** lo ZIP è generato da un piccolo writer
 > incorporato, **senza dipendenze esterne**. Le versioni 1.0.x usavano JSZip (via

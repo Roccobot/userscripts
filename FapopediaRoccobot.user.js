@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fapopedia Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.3.2
+// @version      1.3.3
 // @description  Adds a button to fapopedia.net that downloads every image of a gallery at full resolution, packed into one ZIP. Originals are derived from the thumbnail URLs (the 't_' prefix is dropped) and fetched with GM_xmlhttpRequest; the ZIP comes from a small built-in writer (store method, no dependency: JSZip stalled while compressing inside the sandbox). Nothing is uploaded: downloads only.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -167,7 +167,30 @@
     });
   }
 
+  // A finished ZIP waits for a second tap: a download started after the awaits has lost the
+  // user gesture, and mobile browsers (Violentmonkey on Android) drop it in silence. The click
+  // on the <a download> runs inside the tap on '💾 Save', so the browser accepts it.
+  let salvaInAttesa = null;
+  function preparaSalvataggio(btn, blob, nome, esito, testoIniziale) {
+    const titolo = btn.title;
+    salvaInAttesa = function () {
+      salvaInAttesa = null;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = nome; a.rel = 'noopener'; a.style.display = 'none';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { try { a.remove(); } catch (e) {} }, 1000);
+      setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 120000);
+      btn.textContent = esito;
+      btn.title = titolo;
+      setTimeout(function () { if (!inCorso && !salvaInAttesa) btn.textContent = testoIniziale; }, 5000);
+    };
+    btn.textContent = '💾 Save';
+    btn.title = 'Click to save the ZIP';
+  }
+
   async function avvia(btn) {
+    if (salvaInAttesa) { salvaInAttesa(); return; }
     if (inCorso) return;
     const urls = raccogliUrl();
     if (!urls.length) {
@@ -205,17 +228,7 @@
       const zipBytes = creaZipStore(files);
       const zipBlob = new Blob([zipBytes], { type: 'application/zip' });
       const aggiunte = files.length;
-
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(zipBlob);
-      a.download = nomeZip();
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 15000);
-
-      btn.textContent = '✅ ' + aggiunte + (falliti ? (' / ' + falliti + ' ✗') : '');
-      setTimeout(function () { btn.textContent = testoIniziale; }, 5000);
+      preparaSalvataggio(btn, zipBlob, nomeZip(), '✅ ' + aggiunte + (falliti ? (' / ' + falliti + ' ✗') : ''), testoIniziale);
     } catch (e) {
       alert('Fapopedia+: download error.\n' + (e && e.message ? e.message : e));
       btn.textContent = testoIniziale;
@@ -251,7 +264,7 @@
   function tick() {
     creaPulsante();
     const b = document.getElementById('rb-fap-dl');
-    if (b && !inCorso) {
+    if (b && !inCorso && !salvaInAttesa) {
       const n = raccogliUrl().length;
       if (n) b.textContent = '⬇️ Download gallery (' + n + ') - ZIP';
     }

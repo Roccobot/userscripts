@@ -145,10 +145,13 @@ in ENF, `preparaSalvataggio` in NSFWA). Le sole altre vie ammesse: la finestra '
 di DIV). Uno script nuovo che salva un file segue la regola, e la prova modella il blocco come
 `tests/enf-save.cjs` e `tests/nsfwa-save.cjs`: il clic vale solo con `window.event.isTrusted`,
 perché Chromium senza finestra scarica comunque.
-- **Dove vale oggi**: ENF dalla 1.6.6, NSFWA dalla 1.2.4. ⚠️ **Fapopedia 1.3.2 salva ancora lo ZIP
-  dopo gli scaricamenti**, cioè col difetto che la regola descrive: si corregge col suo prossimo
-  giro. PH salva con `GM_download`, che passa dal gestore degli script e non dal clic della
-  pagina: non è misurato sul telefono.
+- **Dove vale oggi**: ENF dalla 1.6.6, NSFWA dalla 1.2.4, Fapopedia dalla 1.3.3 (sua scelta
+  `Tocco-01`, prova `tests/fapopedia-save.cjs`). PH salva con `GM_download`, che passa dal gestore
+  degli script e non dal clic della pagina: non è misurato sul telefono.
+- ⚠️ **Un salvataggio in attesa non si cancella da solo**: Fapopedia riscrive il testo del tasto a
+  ogni cambio della pagina (`tick`), e senza la guardia su `salvaInAttesa` il tasto tornava al
+  testo di partenza e il tocco successivo ricominciava gli scaricamenti. La prova cambia la pagina
+  prima del tocco, e senza la guardia fallisce.
 - ⚠️ **L'etichetta `💾 Save` è un testo nuovo di interfaccia**, da validare nel collaudo.
 
 - **La versione mobile la decide il tocco, non la larghezza** (scelta Rilevo-01): vale quando
