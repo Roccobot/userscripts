@@ -929,9 +929,15 @@ playlist, IV esplicito o dedotto dal numero di sequenza). Il `.ts` si guarda con
 VLC; per riportarlo a MP4 senza ricodifica: `ffmpeg -i video.ts -c copy video.mp4`.
 
 **MP4.** Prima un assaggio dei primi byte per intercettare subito un rifiuto del
-CDN (altrimenti si salverebbe la pagina d'errore rinominata `.mp4`), poi
-`GM_download` (scrive su disco, nessun limite di memoria) e, se il gestore non
-inoltrasse le intestazioni, un ripiego che scarica in memoria e salva il blob.
+CDN (altrimenti si salverebbe la pagina d'errore rinominata `.mp4`), poi lo
+scaricamento in memoria con le intestazioni che il CDN pretende.
+
+**Il salvataggio** (dalla 1.6.6). Su Chrome, Edge e Brave per desktop la finestra
+'Salva con nome' si apre al clic, e il file si scrive là a fine scaricamento. Dove
+quella finestra non c'è (il telefono, Firefox) il tasto diventa **`💾 Save`** a
+scaricamento finito, e un tocco lo salva in Download: un salvataggio lanciato
+dallo script a fine scaricamento il browser lo può ignorare, e il tasto diceva
+`Done` senza nessun file. In una coda di più video, ogni video chiede il suo tocco.
 
 > **Vincolo del CDN (misurato il 2026-07-26).** `cdn.enf-cmnf.cc` risponde
 > **403** agli MP4 se la richiesta non ha **insieme** il `Referer` del sito e
@@ -992,7 +998,7 @@ tasto prometterebbe una galleria che non esiste.
 ### Personalizzazione
 
 ```js
-const SALVA_CON_DIALOGO  = true;  // MP4: true = chiede dove salvare, false = scarica diretto
+const SALVA_CON_DIALOGO  = true;  // true = chiede dove salvare (Chromium desktop), false = tocco su '💾 Save'
 const SEGMENTI_PARALLELI = 5;     // HLS: quanti segmenti scaricare insieme
 const TENTATIVI_SEGMENTO = 3;     // HLS: ritentativi per singolo segmento
 const QUALITA_HLS        = 'max'; // 'max' o 'min' quando il flusso ha più varianti

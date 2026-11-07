@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ENF Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.6.5
+// @version      1.6.6
 // @description  Adds a Download button to enf-cmnf.cc, enfhub.com and xhamster.com that saves the page's videos. On enf-cmnf.cc photo posts a second button packs every full-size image of the post into a single ZIP, built in the script itself with no external library: it takes the widest srcset candidate, retries the un-resized WordPress original (the -800x600 suffix hides a bigger file), skips avatars, icons and thumbnails from the sidebars, downloads a few images at a time and lists the failed ones once at the end. On xhamster it also forces the English site (no language subdomain) and picks the highest resolution on its own, asking only when the same resolution comes in more than one codec. Covers every player the two sites use: direct MP4 (<source> or <video src>), self-hosted HLS on cdn.enf-cmnf.cc, and enfhub's HLS (master.m3u8, read from the player or derived from the poster); HLS is fetched segment by segment and joined into one .ts file. On forum threads it opens a picker that lists the videos in page order with a thumbnail, the post number and the author, lets you tick several of them and downloads them one after the other, writing the post number into each filename. Progress on the button, second click cancels.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -14,7 +14,6 @@
 // @run-at       document-start
 // @noframes
 // @grant        unsafeWindow
-// @grant        GM_download
 // @grant        GM_xmlhttpRequest
 // @grant        GM_registerMenuCommand
 // @connect      enf-cmnf.cc
@@ -31,7 +30,7 @@
   'use strict';
 
   // ════════════════════════ IMPOSTAZIONI ════════════════════════
-  const SALVA_CON_DIALOGO  = true;  // MP4: true = chiede dove salvare, false = scarica diretto
+  const SALVA_CON_DIALOGO  = true;  // true = chiede dove salvare (Chromium desktop), false = tocco su '💾 Save'
   const SEGMENTI_PARALLELI = 5;     // HLS: quanti segmenti scaricare insieme
   const TENTATIVI_SEGMENTO = 3;     // HLS: ritentativi per singolo segmento
   const QUALITA_HLS        = 'max'; // 'max' o 'min' quando il flusso ha più varianti
@@ -894,21 +893,15 @@
 
   function mb(n) { return (n / 1048576).toFixed(1) + ' MB'; }
 
-  // ⚠️⚠️ Save-to-disk after a fetch. Measured 2026-11-05 on Chromium +
-  // Violentmonkey with `Use browser download API`: progress reached 100% and
-  // the button said Done, but nothing landed in Downloads. Cause: the MP4 is
-  // fetched in memory (headers required), then the save step used GM_download
-  // on a blob: URL. In that mode blob/data URLs do NOT go through
-  // browser.downloads; Violentmonkey falls back to an <a download> click, and
-  // Chrome silently ignores that click once the user gesture is gone (every
-  // await between the button and the click eats it). The old code still
-  // resolved the promise, so Done lied.
-  // Fix: open the File System Access save dialog on the click (first await,
-  // gesture still alive), keep the FileSystemFileHandle, and write the blob
-  // with createWritable after the fetch. No gesture needed for the write.
-  // Firefox has no picker: there <a download> on a blob still works without a
-  // gesture, so that stays as the fallback. Never resolve after a no-op click
-  // on Chromium.
+  // ⚠️⚠️ Save-to-disk after a fetch. Reported 2026-11-05 on Chromium + Violentmonkey with
+  // `Use browser download API`: progress reached 100% and the button said Done, but nothing
+  // landed in Downloads, because the save was a click fired by the script after the fetch.
+  // Two ways out, chosen on the click that starts the download:
+  // - where the File System Access save dialog exists (desktop Chromium), it opens on that
+  //   click, while the gesture is alive, and the blob is written on its FileSystemFileHandle
+  //   with createWritable after the fetch: no gesture needed for the write;
+  // - everywhere else (the phone, Firefox, a dialog that failed) the button asks for a second
+  //   tap, '💾 Save', and the <a download> click runs inside it (`attendiTocco`, below).
 
   function tipiPerNome(nome) {
     if (/\.zip$/i.test(nome)) {
@@ -966,117 +959,53 @@
     }
   }
 
+  // ⚠️⚠️ Without a FileSystemFileHandle the blob is saved by an <a download> click, and since
+  // 1.6.6 that click runs inside a TAP OF ITS OWN: when the file is in memory the button turns
+  // into '💾 Save', and the click happens in that tap's handler. A click fired by the script
+  // after the fetch, with no user gesture left, is what the browser may drop in silence, and
+  // that is how the button said Done with nothing in Downloads (1.6.3 on desktop, and on the
+  // phone, where there is no save dialog at all). With the tap the click is always a fresh
+  // gesture, on every browser, so the same path serves the phone, Firefox and a desktop
+  // Chromium whose save dialog failed. The promise resolves after the click: the browser
+  // hands the file to its own download manager, and the page cannot see further than that.
+  var salvaInAttesa = null;
+
+  function attendiTocco(blob, nome) {
+    return new Promise(function (risolvi) {
+      var btn = tastoAttivo;
+      salvaInAttesa = function () {
+        salvaInAttesa = null;
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = nome;
+        a.rel = 'noopener';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { try { a.remove(); } catch (e) {} }, 1000);
+        setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 120000);
+        risolvi();
+      };
+      if (btn) btn.title = 'Click to save the file';
+      mostra(btn, '💾 Save', COLORE_OK);
+    });
+  }
+
+  // Called first by both click handlers: a tap on a button that is waiting to save saves.
+  function salvaSeInAttesa() {
+    if (!salvaInAttesa) return false;
+    salvaInAttesa();
+    return true;
+  }
+
   function salvaBlob(blob, nome, handle) {
-    return new Promise(function (risolvi, rifiuta) {
-      function fallito(e) {
-        rifiuta(e instanceof Error ? e : new Error(String(e || 'save failed')));
-      }
-      if (handle && typeof handle.createWritable === 'function') {
-        Promise.resolve(scriviHandle(handle, blob)).then(function () { risolvi(); }, fallito);
-        return;
-      }
-      var url = URL.createObjectURL(blob);
-      var chiuso = false;
-      function pulisci() {
-        setTimeout(function () {
-          try { URL.revokeObjectURL(url); } catch (e) {}
-        }, 120000);
-      }
-      function viaAncora() {
-        try {
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = nome;
-          a.rel = 'noopener';
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(function () { try { a.remove(); } catch (e) {} }, 1000);
-          pulisci();
-          // Chromium: without a prior FileSystemFileHandle this click is a
-          // no-op after any await. Claiming success was the Done-without-file
-          // bug. Firefox still honours it, and has no showSaveFilePicker.
-          if (typeof window.showSaveFilePicker === 'function') {
-            fallito(new Error(
-              'could not save the file: the browser blocked the download after the fetch.\n' +
-              'The save dialog should have opened at the start of the download.'
-            ));
-            return;
-          }
-          risolvi();
-        } catch (e) {
-          pulisci();
-          fallito(e);
-        }
-      }
-      function unaVolta(fn) {
-        return function () {
-          if (chiuso) return;
-          chiuso = true;
-          fn.apply(null, arguments);
-        };
-      }
-      if (typeof GM_download !== 'function') {
-        viaAncora();
-        return;
-      }
-      try {
-        var h = GM_download({
-          url: url,
-          name: nome,
-          saveAs: false,
-          onload: unaVolta(function () { pulisci(); risolvi(); }),
-          onerror: unaVolta(function () { viaAncora(); }),
-          ontimeout: unaVolta(function () { viaAncora(); }),
-          onabort: unaVolta(function () {
-            pulisci();
-            fallito(new Error('cancelled'));
-          })
-        });
-        if (h && typeof h.abort === 'function') manoGM = h;
-      } catch (e) {
-        viaAncora();
-      }
-    });
+    if (handle && typeof handle.createWritable === 'function') return scriviHandle(handle, blob);
+    return attendiTocco(blob, nome);
   }
 
-  // True when Violentmonkey routes GM_download through browser.downloads.
-  // That API cannot send Sec-Fetch-Dest: video, so the enf-cmnf CDN answers
-  // 403; the manager may still report a finished download of the error page.
-  function gmDownloadViaBrowser() {
-    try {
-      return typeof GM_info !== 'undefined' && GM_info && GM_info.downloadMode === 'browser';
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // MP4, primo tentativo: GM_download scrive direttamente su file (nessun limite
-  // di memoria, avanzamento reale, annullabile).
-  function scaricaMp4ConGM(url, nome, btn) {
-    return new Promise(function (risolvi, rifiuta) {
-      var h = GM_download({
-        url: url,
-        name: nome,
-        saveAs: SALVA_CON_DIALOGO,
-        headers: INTESTAZIONI_MEDIA,
-        onprogress: function (e) {
-          if (!e) return;
-          if (e.total) {
-            var pct = Math.max(0, Math.min(100, Math.round((e.loaded / e.total) * 100)));
-            barra(btn, pct, '⬇︎ ' + pct + '% · ' + mb(e.loaded));
-          } else if (e.loaded) mostra(btn, '⬇︎ ' + mb(e.loaded));
-        },
-        onload: function () { risolvi(); },
-        onerror: function (err) { rifiuta(new Error((err && (err.error || err.details)) || 'download')); },
-        ontimeout: function () { rifiuta(new Error('timeout')); }
-      });
-      manoGM = (h && typeof h.abort === 'function') ? h : null;
-    });
-  }
-
-  // MP4, ripiego: scaricamento in memoria e salvataggio del blob. Serve se il
-  // gestore non applica le intestazioni a GM_download (il CDN risponderebbe 403).
+  // MP4: scaricamento in memoria con le intestazioni che il CDN pretende, poi il
+  // salvataggio del blob (sul file scelto nella finestra, o col tocco su '💾 Save').
   function scaricaMp4InMemoria(url, nome, btn, handle) {
     return new Promise(function (risolvi, rifiuta) {
       var h = GM_xmlhttpRequest({
@@ -1113,17 +1042,6 @@
                       'Referer and Sec-Fetch-Dest headers, which are required here.');
     }
     mostra(btn, '⬇︎ 0%');
-    // With a FileSystemFileHandle the memory path writes straight to that file.
-    // Without one, try remote GM_download only when it is not the browser API
-    // (that API cannot send Sec-Fetch-Dest: video → CDN 403 → fake Done).
-    if (!handle && !gmDownloadViaBrowser()) {
-      try {
-        await scaricaMp4ConGM(url, nome, btn);
-        return;
-      } catch (e) {
-        if (annullato) throw e;
-      }
-    }
     await scaricaMp4InMemoria(url, nome, btn, handle);
   }
 
@@ -1758,6 +1676,7 @@
   }
 
   function alClic(btn) {
+    if (salvaSeInAttesa()) return;
     if (inCorso) { annulla(btn); return; }
     if (document.getElementById(ID_ELENCO)) { chiudiElenco(); return; }
     var voci = videoDellaPagina();
@@ -1775,6 +1694,7 @@
   // request came from. The count is written on the button before the click, so
   // what is about to happen is never a surprise.
   function alClicImg(btn) {
+    if (salvaSeInAttesa()) return;
     if (inCorso) { annulla(tastoAttivo || btn); return; }
     chiudiElenco();
     scaricaImmagini(btn);

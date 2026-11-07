@@ -683,6 +683,23 @@ nome del file. Copre `enf-cmnf.cc`, `enfhub.com` e `xhamster.com`.
   dialogo di salvataggio (`showSaveFilePicker`) si apre *al click*, prima di ogni `await` di rete;
   dopo il fetch il blob si scrive su quel `FileSystemFileHandle` con `createWritable`, senza
   bisogno di gesto. Su Firefox, senza picker, resta il ripiego `<a download>` sul blob.
+- ⚠️⚠️ **Dalla 1.6.6, dove la finestra 'Salva' non c'è, il salvataggio chiede un SECONDO TOCCO**
+  (richiesta dell'utente del 2026-11-07, `Revisione-04`: *mi pare che il salvataggio funzioni solo
+  da desktop*). Sul telefono `showSaveFilePicker` non esiste, quindi la 1.6.4 e la 1.6.5 ripiegavano
+  sul clic su `<a download>` lanciato dallo script dopo lo scaricamento, cioè lo stesso clic senza
+  gesto che sul desktop dava `Done` senza file. Ora, a file in memoria, il tasto diventa
+  **`💾 Save`** e il clic parte dentro quel tocco (`attendiTocco`); vale per il telefono, Firefox e
+  un Chromium desktop la cui finestra non si è aperta, e per lo ZIP delle foto. Tolta la via di
+  `GM_download` (remota e sul blob), che finiva sullo stesso clic tardivo. ⚠️ Non misurato sul
+  telefono vero: in Chromium senza finestra un clic tardivo scarica comunque, quindi la causa sul
+  telefono è un'ipotesi coerente coi sintomi. ⚠️ Il video sta tutto in memoria prima del tocco:
+  un file molto grande sul telefono resta da provare.
+  - **La prova è `tests/enf-save.cjs`** (`node tests/enf-save.cjs` dalla radice, `Revisione-03`):
+    lo script vero sulla pagina servita all'indirizzo di `enf-cmnf.cc`, coi `GM_*` simulati, in
+    tre casi (telefono, desktop con e senza la finestra 'Salva'). Il blocco del browser è
+    modellato: un clic su `<a download>` vale solo dentro il gestore di un evento vero, perché
+    Chromium senza finestra non lo applica. Vista fallire sulla 1.6.5 (`Done` senza file in due
+    casi su tre).
 
 ### 🖼️ Le foto in uno ZIP
 
