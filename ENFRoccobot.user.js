@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ENF Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.6.4
+// @version      1.6.5
 // @description  Adds a Download button to enf-cmnf.cc, enfhub.com and xhamster.com that saves the page's videos. On enf-cmnf.cc photo posts a second button packs every full-size image of the post into a single ZIP, built in the script itself with no external library: it takes the widest srcset candidate, retries the un-resized WordPress original (the -800x600 suffix hides a bigger file), skips avatars, icons and thumbnails from the sidebars, downloads a few images at a time and lists the failed ones once at the end. On xhamster it also forces the English site (no language subdomain) and picks the highest resolution on its own, asking only when the same resolution comes in more than one codec. Covers every player the two sites use: direct MP4 (<source> or <video src>), self-hosted HLS on cdn.enf-cmnf.cc, and enfhub's HLS (master.m3u8, read from the player or derived from the poster); HLS is fetched segment by segment and joined into one .ts file. On forum threads it opens a picker that lists the videos in page order with a thumbnail, the post number and the author, lets you tick several of them and downloads them one after the other, writing the post number into each filename. Progress on the button, second click cancels.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -895,7 +895,7 @@
   function mb(n) { return (n / 1048576).toFixed(1) + ' MB'; }
 
   // ⚠️⚠️ Save-to-disk after a fetch. Measured 2026-11-05 on Chromium +
-  // Violentmonkey with «Use browser download API»: progress reached 100% and
+  // Violentmonkey with `Use browser download API`: progress reached 100% and
   // the button said Done, but nothing landed in Downloads. Cause: the MP4 is
   // fetched in memory (headers required), then the save step used GM_download
   // on a blob: URL. In that mode blob/data URLs do NOT go through
