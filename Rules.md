@@ -199,6 +199,12 @@ si usa), lo si dice nella proposta, e decide l'utente.
   la riga spinta a destra, `Trackpad e mouse` usciva dal bordo sinistro. Sul telefono le tendine
   hanno `flex: 1 1 0`, `min-width: 0` e `width: 100%`, e il banco controlla che ogni tendina resti
   dentro la sua riga.
+- **NSFWA: le immagini di un album vivono su DUE host, e il tasto dello ZIP li cerca tutti e due**
+  (1.2.3, segnalazione dell'utente del 2026-11-07: *niente tasto Download*). Su una parte degli
+  album le miniature sono passate da imx.to a pixhost (`//t3.pixhost.cc/thumbs/...`, file pieno
+  `//img3.pixhost.cc/images/...`, 9 KB contro 2,3 MB, misurato quel giorno), e la 1.2.2 cercava
+  solo imx.to, quindi su quegli album il tasto non compariva. Un host nuovo entra in
+  `pienaRisoluzione` e in `@connect`; la prova è `tests/nsfwa-album.cjs`, vista fallire sulla 1.2.2.
 - **NSFWA: sul telefono le esche si tolgono al `pointerdown` del dito**, perché il browser sceglie
   il bersaglio della pressione lunga quando il dito si appoggia, prima del `contextmenu`.
 - ⚠️ **Il banco con Playwright inganna con le schermate a pagina intera**: `fullPage: true`

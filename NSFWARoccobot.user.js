@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         NSFWA Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.2.2
-// @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the real image becomes clickable again, so open-image and save-image reach the actual imx.to file; #zoom is forced visible and on top, and the SVG and lens decoys over it are neutralized, hidden #zoom included. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
+// @version      1.2.3
+// @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the real image becomes clickable again, so open-image and save-image reach the actual image file; #zoom is forced visible and on top, and the SVG and lens decoys over it are neutralized, hidden #zoom included. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://nsfwalbum.com/*
@@ -14,6 +14,8 @@
 // @connect      i.imx.to
 // @connect      imx.to
 // @connect      image.imx.to
+// @connect      pixhost.cc
+// @connect      pixhost.to
 // @updateURL    https://roccobot.github.io/userscripts/NSFWARoccobot.user.js
 // @downloadURL  https://roccobot.github.io/userscripts/NSFWARoccobot.user.js
 // ==/UserScript==
@@ -117,9 +119,13 @@
   // ═══════════════════════════════════════════════════════════════════════
   //  MODULO ALBUM (/album/<id>): scarica l'intero set in ZIP
   // ═══════════════════════════════════════════════════════════════════════
-  // Le thumbnail sono <img class="albumPhoto" data-src="//image.imx.to/u/t/<data>/
-  // <nome>.jpg">; il full-res è //i.imx.to/i/<data>/<nome>.jpg. ZIP creato da un
-  // writer interno (metodo "store": le JPEG sono già compresse; niente dipendenze).
+  // Le thumbnail sono <img class="albumPhoto" data-src="...">, e il sito usa due host:
+  // - imx.to: thumb //image.imx.to/u/t/<data>/<nome>.jpg, full-res //i.imx.to/i/<data>/<nome>.jpg;
+  // - pixhost (visto il 2026-11-07 su una parte degli album): thumb
+  //   //tN.pixhost.cc/thumbs/<n>/<nome>.jpg, full-res //imgN.pixhost.cc/images/<n>/<nome>.jpg
+  //   (misurato il 2026-11-07: 9 KB contro 2,3 MB).
+  // Un album su pixhost non aveva il pulsante, perché qui si cercava solo imx.to. ZIP creato da
+  // un writer interno (metodo "store": le JPEG sono già compresse; niente dipendenze).
   function moduloAlbum() {
     // ── Writer ZIP interno ──
     const CRC_TABLE = (function () {
@@ -176,14 +182,20 @@
       return nome.slice(0, 180) + '.zip';
     }
 
+    // The full-size address of a thumbnail, or '' when the host is not one of the two known.
+    function pienaRisoluzione(ds) {
+      if (/\/\/image\.imx\.to\/u\/t\//i.test(ds)) return ds.replace(/\/\/image\.imx\.to\/u\/t\//i, '//i.imx.to/i/');
+      const px = ds.match(/^(https:\/\/)t(\d+)\.(pixhost\.(?:cc|to))\/thumbs\/(.+)$/i);
+      if (px) return px[1] + 'img' + px[2] + '.' + px[3] + '/images/' + px[4];
+      return '';
+    }
     function urlPienaRisoluzione() {
       const out = [];
       for (const img of document.querySelectorAll('img.albumPhoto[data-src], img[data-img-id][data-src]')) {
         let ds = img.getAttribute('data-src') || '';
-        if (!/imx\.to/i.test(ds)) continue;
         if (ds.indexOf('//') === 0) ds = 'https:' + ds;
-        const full = ds.replace(/\/\/image\.imx\.to\/u\/t\//i, '//i.imx.to/i/');
-        if (/\/\/i\.imx\.to\/i\//i.test(full)) out.push(full);
+        const full = pienaRisoluzione(ds);
+        if (full) out.push(full);
       }
       return out;
     }
