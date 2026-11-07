@@ -206,7 +206,9 @@ Tutto-in-uno per `nsfwalbum.com` (unisce e sostituisce *NSFWAlbum Enhancer* +
   pagina). Full-res dai due host del sito: imx.to (thumb `//image.imx.to/u/t/...` →
   file `//i.imx.to/i/...`) e pixhost (thumb `//t3.pixhost.cc/thumbs/...` → file
   `//img3.pixhost.cc/images/...`, dalla 1.2.3); ZIP creato da un **writer interno** (metodo *store*, nessuna
-  dipendenza); file numerati in ordine d'album.
+  dipendenza); file numerati in ordine d'album. Dalla 1.2.4, a ZIP pronto il
+  pulsante diventa **'💾 Save'**: un secondo tocco salva il file. Serve al
+  telefono, dove il browser accetta il salvataggio solo dentro un tocco.
 
 ### Personalizzazione
 

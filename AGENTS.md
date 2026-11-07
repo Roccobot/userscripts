@@ -351,6 +351,10 @@ Un file più specifico vince **dove parla**, e il suo silenzio non è una deroga
 - **Sul telefono** (Violentmonkey su Android): la versione mobile la decide `pointer: coarse`, le
   pillole di scaricamento vanno in basso a sinistra, ogni comando toccabile misura almeno 44 px
   (`Rules.md` § '📱 Sul telefono: `pointer: coarse`, pillole a sinistra, bersagli da 44 px').
+- **Un file scaricato dallo script si salva dentro un tocco dell'utente, mai dopo un `await`**: a
+  file pronto il tasto diventa `💾 Save` e il clic su `<a download>` parte in quel tocco, o la
+  finestra 'Salva' si apre al primo clic; la prova lo modella con `window.event.isTrusted`
+  (`Rules.md` § '📱 Sul telefono: `pointer: coarse`, pillole a sinistra, bersagli da 44 px').
 - **Le trappole del banco Playwright**: `addInitScript` parte prima che ci sia `<head>`, un archivio
   simulato va appoggiato a `localStorage`, le pagine vere si servono ai loro indirizzi reali
   (`ctx.route`), e un HLS passa da `GM_xmlhttpRequest`, non da `GM_download`.

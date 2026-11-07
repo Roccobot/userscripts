@@ -133,6 +133,24 @@ script nuovo, o una funzione nuova o cambiata, si pensa e si prova anche per il 
 Dove la controparte mobile non serve (uno script che vale solo per un sito che sul telefono non
 si usa), lo si dice nella proposta, e decide l'utente.
 
+⚠️⚠️ **UN FILE CHE LO SCRIPT HA SCARICATO SI SALVA DENTRO UN TOCCO DELL'UTENTE, MAI DOPO UN
+`await`** (regola dell'utente del 2026-11-07, data con NSFWA 1.2.4: *applica e aggiungi alle
+regole di progetto*). Il browser accetta il clic su `<a download>` solo mentre gestisce un gesto
+dell'utente; uno scaricamento di rete o la costruzione di uno ZIP consumano quel gesto, e sul
+telefono il clic che arriva dopo non produce nessun file, senza errori. Quindi, a file pronto in
+memoria, il tasto diventa **`💾 Save`** e il clic parte dentro il tocco successivo (`attendiTocco`
+in ENF, `preparaSalvataggio` in NSFWA). Le sole altre vie ammesse: la finestra 'Salva'
+(`showSaveFilePicker`) aperta al primo clic, prima di ogni `await`, dove il browser la offre (ENF
+1.6.4); il clic diretto quando il file è già in pagina e non serve nessuna attesa (il salvataggio
+di DIV). Uno script nuovo che salva un file segue la regola, e la prova modella il blocco come
+`tests/enf-save.cjs` e `tests/nsfwa-save.cjs`: il clic vale solo con `window.event.isTrusted`,
+perché Chromium senza finestra scarica comunque.
+- **Dove vale oggi**: ENF dalla 1.6.6, NSFWA dalla 1.2.4. ⚠️ **Fapopedia 1.3.2 salva ancora lo ZIP
+  dopo gli scaricamenti**, cioè col difetto che la regola descrive: si corregge col suo prossimo
+  giro. PH salva con `GM_download`, che passa dal gestore degli script e non dal clic della
+  pagina: non è misurato sul telefono.
+- ⚠️ **L'etichetta `💾 Save` è un testo nuovo di interfaccia**, da validare nel collaudo.
+
 - **La versione mobile la decide il tocco, non la larghezza** (scelta Rilevo-01): vale quando
   il puntatore principale è un dito, `matchMedia('(pointer: coarse)')` in JS e
   `@media (pointer:coarse)` nei fogli di stile, anche col telefono in orizzontale. La sola

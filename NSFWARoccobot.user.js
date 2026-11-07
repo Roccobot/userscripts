@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NSFWA Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.2.3
+// @version      1.2.4
 // @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the real image becomes clickable again, so open-image and save-image reach the actual image file; #zoom is forced visible and on top, and the SVG and lens decoys over it are neutralized, hidden #zoom included. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -235,12 +235,33 @@
     }
 
     let inCorso = false;
+    // A finished ZIP waits for a second tap: a download started after the awaits has lost the
+    // user gesture, and mobile browsers (Violentmonkey on Android) drop it in silence. The click
+    // on the <a download> runs inside the tap on '💾 Save', so the browser accepts it.
+    let salvaInAttesa = null;
+    function preparaSalvataggio(btn, blob, nome, esito) {
+      salvaInAttesa = function () {
+        salvaInAttesa = null;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = nome; a.rel = 'noopener'; a.style.display = 'none';
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { try { a.remove(); } catch (e) {} }, 1000);
+        setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 120000);
+        if (btn) {
+          btn.textContent = esito;
+          btn.title = btn.dataset.titolo || '';
+          setTimeout(function () { if (!inCorso && !salvaInAttesa) btn.textContent = btn.dataset.testo || ''; }, 6000);
+        }
+      };
+      if (btn) { btn.textContent = '💾 Save'; btn.title = 'Click to save the ZIP'; }
+    }
     async function avvia(btn) {
+      if (salvaInAttesa) { salvaInAttesa(); return; }
       if (inCorso) return;
       const lista = urlPienaRisoluzione();
       if (!lista.length) { alert('NSFWAlbum+: no image found on this page.'); return; }
       inCorso = true;
-      const testo0 = btn ? btn.textContent : '';
       if (btn) btn.disabled = true;
       try {
         const res = await scaricaTutte(lista, function (fatti, tot) { if (btn) btn.textContent = '⬇️ ' + fatti + '/' + tot + '...'; });
@@ -257,18 +278,17 @@
         await sleep(0);
         const zipBytes = creaZipStore(files);
         const blob = new Blob([zipBytes], { type: 'application/zip' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = nomeZip();
-        document.body.appendChild(a); a.click();
-        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-        if (btn) btn.textContent = '✅ ' + n + '/' + lista.length + (n < lista.length ? ' (some failed)' : '');
+        preparaSalvataggio(btn, blob, nomeZip(), '✅ ' + n + '/' + lista.length + (n < lista.length ? ' (some failed)' : ''));
+        if (!btn) salvaInAttesa(); // no pill to tap: try at once (menu without the pill)
       } catch (e) {
         if (btn) btn.textContent = '⚠️ Error';
         alert('NSFWAlbum+: download error.\n' + (e && e.message ? e.message : e));
       } finally {
         inCorso = false;
-        if (btn) { btn.disabled = false; setTimeout(function () { if (!inCorso) btn.textContent = testo0; }, 6000); }
+        if (btn) {
+          btn.disabled = false;
+          if (!salvaInAttesa) setTimeout(function () { if (!inCorso && !salvaInAttesa) btn.textContent = btn.dataset.testo || ''; }, 6000);
+        }
       }
     }
 
@@ -280,6 +300,8 @@
       b.type = 'button';
       b.textContent = '⬇️ Download set (ZIP)';
       b.title = 'Download every image of the set at full resolution in one ZIP\n(name: "studio - model - title.zip", taken from the page).';
+      b.dataset.testo = b.textContent;
+      b.dataset.titolo = b.title;
       // Touch-first device (pointer: coarse, e.g. Violentmonkey on an Android Chromium browser):
       // the pill moves to the bottom-left corner and grows to a finger-sized target (44 px tall).
       const touch = matchMedia('(pointer: coarse)').matches;
