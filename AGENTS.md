@@ -12,7 +12,7 @@
 
 # Core.md: il nucleo delle regole universali
 
-> **Versione**: 2.62
+> **Versione**: 2.63
 >
 > **Cos'è questo file.** Le regole che ogni agente ha **sempre**, su ogni piattaforma e in ogni
 > repo di Roccobot: una per riga, col rimando al perché in `rules/Roccobot.md`, che nel dubbio fa
@@ -234,26 +234,6 @@ Un file più specifico vince **dove parla**, e il suo silenzio non è una deroga
   del ramo principale e ha un esito dichiarato; **brief e bacheca si aggiornano**, anche per un
   lavoro fatto subito; si ferma ciò che resta acceso in sottofondo, `caffeinate` per primo
   (`Roccobot.md` § '🧾 Il bilancio di chiusura').
-
-## 🔁 Il collaudo
-
-- **Chi rilascia non collauda**: a ogni versione si aggiorna il **documento di feedback** del
-  progetto, e il collaudo lo fa l'utente (`Roccobot.md` § '🔁 Il giro del collaudo').
-- Il giro si prende **intero, solo quando lo dice lui**, e il documento non si ripubblica mentre
-  lo compila (`Roccobot.md` § '⏸️ Il giro si prende INTERO, e solo quando lo dice lui').
-- Una domanda che è già nel documento non si ripete in chat.
-- **Il lavoro nuovo comincia dopo l'invio del giro precedente, o con la sua conferma**: a un via
-  dato col giro non ancora letto si risponde col bivio a scelta multipla (*aspetto il tuo
-  feedback, o vado avanti e metto le richieste di riscontro in un DF cumulativo?*); vale anche una
-  conferma preventiva per più release. Con la conferma la versione si rilascia e il DF cumulativo
-  va in scena subito dopo (`Roccobot.md` § '🚪 Il lavoro nuovo comincia dopo l'invio del giro
-  precedente').
-- **Una modifica a un DF si fa a tutti gli omologhi** nello stesso giro (oggi AIV e Aomidori):
-  una **divergenza funzionale non deve esistere**, e restano diversi solo il contenuto del giro e
-  ciò che è specifico del progetto. Chi non raggiunge il repo dell'altro DF lo dice all'utente
-  nello stesso turno.
-- **Una prova che cita un file ne dà la scorciatoia**: allegato in cloud, percorso col pulsante
-  `Copia` in locale (`Roccobot.md` § '🔁 Il giro del collaudo').
 
 ## 🏗️ Sviluppo
 
