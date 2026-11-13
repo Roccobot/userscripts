@@ -1,4 +1,5 @@
-// ENF Roccobot: the save step must end in a real file before the button says Done.
+// ENF Roccobot: the save step must end in a real file before the button says Done, and the
+// button's text stays readable on the green of 'Save' and 'Done' (WCAG AA, 4.5).
 // Run from the repo root: node tests/enf-save.cjs [path to a copy of the script]
 // Author: Rocco Casadei, a.k.a. Roccobot
 // Bench for ENF Roccobot's save step: the real userscript on a page served at its real address.
@@ -41,6 +42,22 @@ const PICKER = `
 `;
 const PAGINA = '<!doctype html><html><head><title>Prova ENF</title></head><body><article><video src="https://cdn.enf-cmnf.cc/wp-content/uploads/prova.mp4" controls></video></article></body></html>';
 
+function luminanza(rgb) {
+  const c = rgb.match(/\d+/g).slice(0, 3).map((x) => {
+    const v = x / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function contrasto(a, b) {
+  const x = luminanza(a), y = luminanza(b);
+  return Math.round((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) * 100) / 100;
+}
+const colori = (p) => p.evaluate(() => {
+  const s = getComputedStyle(document.getElementById('rb-enf-dl'));
+  return [s.color, s.backgroundColor];
+});
+
 async function giro(b, nome, opt, picker) {
   const ctx = await b.newContext({ ...opt, acceptDownloads: true });
   await ctx.route('https://enf-cmnf.cc/**', r => r.fulfill({ contentType: 'text/html', body: PAGINA }));
@@ -61,18 +78,24 @@ async function giro(b, nome, opt, picker) {
   await p.waitForSelector('#rb-enf-dl', { state: 'visible', timeout: 10000 });
   await p.click('#rb-enf-dl');
   const etichette = [];
+  const contrasti = [];
   let fatto = false, salvato = false;
   for (let i = 0; i < 80; i++) {
     await p.waitForTimeout(250);
     const t = await p.textContent('#rb-enf-dl');
-    if (etichette[etichette.length - 1] !== t) etichette.push(t);
+    if (etichette[etichette.length - 1] !== t) {
+      etichette.push(t);
+      if (/Save|Done/.test(t)) contrasti.push(contrasto(...(await colori(p))));
+    }
     const s = await p.evaluate(() => (window.__salvati || []).length + (window.__scritti || []).length);
     if (/Done/.test(t)) { fatto = true; salvato = s > 0; break; }
     if (/Save/.test(t)) await p.click('#rb-enf-dl');
   }
   await ctx.close();
-  const ok = fatto && salvato;
-  console.log((ok ? 'OK  ' : 'FALLITA ') + nome + ': ' + etichette.join(' > ') + (fatto && !salvato ? '  (Done senza file)' : ''));
+  const leggibile = contrasti.length > 0 && contrasti.every((c) => c >= 4.5);
+  const ok = fatto && salvato && leggibile;
+  console.log((ok ? 'OK  ' : 'FALLITA ') + nome + ': ' + etichette.join(' > ') + (fatto && !salvato ? '  (Done senza file)' : '') +
+    '; contrasto del testo su Save e Done: ' + contrasti.join(', '));
   return ok;
 }
 

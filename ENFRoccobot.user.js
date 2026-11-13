@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ENF Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.6.6
+// @version      1.6.7
 // @description  Adds a Download button to enf-cmnf.cc, enfhub.com and xhamster.com that saves the page's videos. On enf-cmnf.cc photo posts a second button packs every full-size image of the post into a single ZIP, built in the script itself with no external library: it takes the widest srcset candidate, retries the un-resized WordPress original (the -800x600 suffix hides a bigger file), skips avatars, icons and thumbnails from the sidebars, downloads a few images at a time and lists the failed ones once at the end. On xhamster it also forces the English site (no language subdomain) and picks the highest resolution on its own, asking only when the same resolution comes in more than one codec. Covers every player the two sites use: direct MP4 (<source> or <video src>), self-hosted HLS on cdn.enf-cmnf.cc, and enfhub's HLS (master.m3u8, read from the player or derived from the poster); HLS is fetched segment by segment and joined into one .ts file. On forum threads it opens a picker that lists the videos in page order with a thumbnail, the post number and the author, lets you tick several of them and downloads them one after the other, writing the post number into each filename. Progress on the button, second click cancels.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -21,6 +21,7 @@
 // @connect      enfhub.site
 // @connect      xhamster.com
 // @connect      xhcdn.com
+// @connect      ahcdn.com
 // @connect      *
 // @updateURL    https://roccobot.github.io/userscripts/ENFRoccobot.user.js
 // @downloadURL  https://roccobot.github.io/userscripts/ENFRoccobot.user.js
@@ -41,7 +42,9 @@
 
   const COLORE_BASE = '#7b3fa0';    // viola: tinta del tasto a riposo
   const COLORE_IMG  = '#1f6fb2';    // blu: tinta del tasto delle immagini
-  const COLORE_OK   = '#12b76a';
+  // A dark green: the button text is white, and on #12b76a it measured 2.62, under the 4.5 of
+  // WCAG AA; on #0a7d47 it is 5.20.
+  const COLORE_OK   = '#0a7d47';
   const COLORE_KO   = '#d0021b';
 
   const W = (typeof unsafeWindow !== 'undefined' && unsafeWindow) ? unsafeWindow : window;
@@ -169,6 +172,26 @@
     return out;
   }
 
+  // ── The page's text, read once per state of the page ──
+  // Three detectors look for addresses in the serialized document (innerHTML): serializing a
+  // big page and running a regex over it cost about 84 ms per pass with the CPU slowed four
+  // times, and the passes came every 1.5 s for as long as the page stayed open (Userscript-13
+  // of the Vaglio audit). Each scan is kept until the page can have something new to say: a
+  // new address, or a different number of <video>, <source> or <script> elements (a player
+  // that mounts, a payload that Next.js appends).
+  var memoTesto = { firma: '', testo: null, valori: {} };
+
+  function dalTesto(chiave, calcola) {
+    var firma = location.href + '|' + document.getElementsByTagName('video').length + '|' +
+      document.getElementsByTagName('source').length + '|' + document.getElementsByTagName('script').length;
+    if (firma !== memoTesto.firma) memoTesto = { firma: firma, testo: null, valori: {} };
+    if (!Object.prototype.hasOwnProperty.call(memoTesto.valori, chiave)) {
+      if (memoTesto.testo === null) memoTesto.testo = document.documentElement ? document.documentElement.innerHTML : '';
+      memoTesto.valori[chiave] = calcola(memoTesto.testo);
+    }
+    return memoTesto.valori[chiave].slice();
+  }
+
   // e) xhamster: le sorgenti stanno nel payload della pagina, una per qualità, e il
   //    nome del file dichiara il codec (`720p.h264.mp4`, `1080p.av1.mp4`).
   //
@@ -182,19 +205,20 @@
   // `video/mp4`, perfino senza nessuna intestazione. Sono legati all'IP di chi ha
   // aperto la pagina, che è esattamente il nostro caso: il browser dell'utente.
   function candidatiXhamster() {
-    var out = [];
-    if (!/(^|\.)xhamster\.com$/i.test(location.hostname)) return out;
-    try {
-      var html = document.documentElement ? document.documentElement.innerHTML : '';
-      var re = /"(\d{3,4})p"\s*:\s*"(https?:[^"]+?\.mp4[^"]*)"/g, m, visti = {};
-      while ((m = re.exec(html)) !== null) {
-        var url = m[2].replace(/\\\//g, '/').replace(/\\u002F/gi, '/');
-        if (visti[url] || scarta(url)) continue;
-        visti[url] = 1;
-        out.push({ q: parseInt(m[1], 10), codec: codecDa(url), url: url });
-      }
-    } catch (e) {}
-    return out;
+    if (!/(^|\.)xhamster\.com$/i.test(location.hostname)) return [];
+    return dalTesto('xhamster', function (html) {
+      var out = [];
+      try {
+        var re = /"(\d{3,4})p"\s*:\s*"(https?:[^"]+?\.mp4[^"]*)"/g, m, visti = {};
+        while ((m = re.exec(html)) !== null) {
+          var url = m[2].replace(/\\\//g, '/').replace(/\\u002F/gi, '/');
+          if (visti[url] || scarta(url)) continue;
+          visti[url] = 1;
+          out.push({ q: parseInt(m[1], 10), codec: codecDa(url), url: url });
+        }
+      } catch (e) {}
+      return out;
+    });
   }
 
   function codecDa(u) {
@@ -240,9 +264,11 @@
       if (!/(^|\.)enfhub\.com$/i.test(location.hostname)) return out;
       var id = idDalPoster();
       if (id) out.push('https://cdn.enfhub.site/videos/' + id + '/master.m3u8');
-      var html = document.documentElement ? document.documentElement.innerHTML : '';
-      var re = /videos\\?\/(\d+)\\?\/master\.m3u8/g, m, ultimo = null;
-      while ((m = re.exec(html)) !== null) ultimo = m[1];
+      var ultimo = dalTesto('enfhub', function (html) {
+        var re = /videos\\?\/(\d+)\\?\/master\.m3u8/g, m, u = null;
+        while ((m = re.exec(html)) !== null) u = m[1];
+        return u ? [u] : [];
+      })[0];
       if (ultimo) out.push('https://cdn.enfhub.site/videos/' + ultimo + '/master.m3u8');
     } catch (e) {}
     return out;
@@ -270,13 +296,14 @@
   // Rete di sicurezza: qualunque URL media scritto nell'HTML (anche con le barre
   // sfuggite \/ del payload JSON di Next.js).
   function fontiDallHtml() {
-    var out = [];
-    try {
-      var html = document.documentElement ? document.documentElement.innerHTML : '';
-      var re = /https?:(?:\\?\/){2}[^\s"'<>\\)]+?\.(?:m3u8|mp4)/g, m;
-      while ((m = re.exec(html)) !== null) out.push(m[0].replace(/\\/g, ''));
-    } catch (e) {}
-    return out;
+    return dalTesto('html', function (html) {
+      var out = [];
+      try {
+        var re = /https?:(?:\\?\/){2}[^\s"'<>\\)]+?\.(?:m3u8|mp4)/g, m;
+        while ((m = re.exec(html)) !== null) out.push(m[0].replace(/\\/g, ''));
+      } catch (e) {}
+      return out;
+    });
   }
 
   // ⚠️ Non tutto ciò che finisce in `.mp4` è il video: la scansione del testo grezzo
@@ -305,8 +332,7 @@
   }
 
   // Ordine di fiducia: prima ciò che la pagina ha davvero chiesto (spia),
-  // poi il DOM, poi le deduzioni per sito, poi ciò che ha annunciato un player
-  // dentro un iframe, infine il testo grezzo.
+  // poi il DOM, poi le deduzioni per sito, infine il testo grezzo.
   function fonti() {
     var perSito = fontiXhamster();
     // ⚠️⚠️ Quando l'estrattore SPECIFICO del sito risponde, vale SOLO lui: né la spia
@@ -654,7 +680,7 @@
           if (r.status >= 200 && r.status < 300) risolvi(tipoRisposta ? r.response : r.responseText);
           else rifiuta(new Error('HTTP ' + r.status));
         },
-        onerror: function () { rifiuta(new Error('rete')); },
+        onerror: function () { rifiuta(new Error('network')); },
         ontimeout: function () { rifiuta(new Error('timeout')); }
       });
     });
@@ -1026,7 +1052,7 @@
           mostra(btn, '💾 Saving...');
           Promise.resolve(salvaBlob(r.response, nome, handle)).then(risolvi, rifiuta);
         },
-        onerror: function () { rifiuta(new Error('rete')); },
+        onerror: function () { rifiuta(new Error('network')); },
         ontimeout: function () { rifiuta(new Error('timeout')); }
       });
       manoGM = (h && typeof h.abort === 'function') ? h : null;
@@ -1052,7 +1078,7 @@
     var testo = await chiedi(url);
     if (/#EXT-X-STREAM-INF/i.test(testo)) {
       var v = scegliVariante(testo, url);
-      if (!v) throw new Error('nessuna variante nella master playlist');
+      if (!v) throw new Error('no variant in the master playlist');
       url = v.url;
       testo = await chiedi(url);
     }
@@ -1624,6 +1650,7 @@
       b.textContent = testo_;
       stile(b, {
         'padding': TOUCH ? '15px 16px' : '8px 12px', 'border': 'none', 'border-radius': '8px',
+        'min-height': TOUCH ? '44px' : '0',
         'background': sfondo, 'color': '#fff', 'cursor': 'pointer',
         'font': '700 13px/1 system-ui, -apple-system, sans-serif'
       });
@@ -1744,15 +1771,18 @@
         timer = setTimeout(function () { timer = null; cambioPagina(); aggiorna(); }, 400);
       }).observe(document.documentElement, { subtree: true, childList: true });
     } catch (e) {}
-    setInterval(function () { cambioPagina(); aggiorna(); }, 1500);
+    // The interval covers what the observer cannot see: a source heard only by the network
+    // spy, and an address changed by the SPA without a DOM change. Once the button is on
+    // screen it only checks the address; the observer keeps the rest up to date.
+    setInterval(function () {
+      cambioPagina();
+      var b = document.getElementById(ID_TASTO);
+      if (!b || b.style.getPropertyValue('display') !== 'block') aggiorna();
+    }, 1500);
     window.addEventListener('popstate', cambioPagina);
     window.addEventListener('load', aggiorna);
   }
 
-  // Dentro un frame lo script fa UNA cosa e nessun'altra: annuncia al livello sopra
-  // quello che vede. ⚠️ Nessun tasto, nessuna voce di menu, nessun ascolto di
-  // click: due interfacce sovrapposte (una nella pagina e una nel player) sarebbero
-  // un difetto, e nel frame il tasto cadrebbe dentro il rettangolo del video.
   if (typeof GM_registerMenuCommand !== 'undefined') {
     GM_registerMenuCommand('Download the video on this page', function () {
       alClic(document.getElementById(ID_TASTO) || creaTasto());
