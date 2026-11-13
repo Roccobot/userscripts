@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fapopedia Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.3.3
+// @version      1.3.4
 // @description  Adds a button to fapopedia.net that downloads every image of a gallery at full resolution, packed into one ZIP. Originals are derived from the thumbnail URLs (the 't_' prefix is dropped) and fetched with GM_xmlhttpRequest; the ZIP comes from a small built-in writer (store method, no dependency: JSZip stalled while compressing inside the sandbox). Nothing is uploaded: downloads only.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -32,52 +32,93 @@
 
   const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
-  // ── Writer ZIP interno (metodo "store", nessuna compressione) ─────────
-  // Perché non JSZip: nella sandbox di Tampermonkey la sua generateAsync si
-  // bloccava all'infinito in fase di compressione. Le JPEG sono già compresse,
-  // quindi lo "store" (nessuna ricompressione) non perde nulla ed è sincrono,
-  // deterministico e senza dipendenze @require. Verificato con unzip -t.
-  const CRC_TABLE = (function () {
-    const t = new Uint32Array(256);
-    for (let n = 0; n < 256; n++) {
-      let c = n;
-      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+  // ── The ZIP writer: the same code as ENFRoccobot.user.js (section 5b) ──
+  // Stored entries, no library: JPEGs are compressed already, so storing loses nothing, and
+  // JSZip hung for ever inside the manager's sandbox while compressing. Each script is a single file,
+  // so the writer has three copies, and they are kept identical. The entries are handed to a
+  // Blob, which never copies the pixels, and carry the real DOS date and time (an all-zero
+  // date reads as 1980-00-00). Plain zip32: the caller keeps the archive under 4 GiB.
+  var TABELLA_CRC = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
       t[n] = c >>> 0;
     }
     return t;
   })();
-  function crc32(u8) {
-    let c = 0xFFFFFFFF;
-    for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+
+  function crc32(bytes) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) c = TABELLA_CRC[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
     return (c ^ 0xFFFFFFFF) >>> 0;
   }
-  // files: [{ name:string, data:Uint8Array }] → Uint8Array (l'archivio ZIP)
-  function creaZipStore(files) {
-    const enc = new TextEncoder();
-    const chunks = []; const central = []; let offset = 0;
-    const u16 = function (v) { return new Uint8Array([v & 0xFF, (v >>> 8) & 0xFF]); };
-    const u32 = function (v) { v = v >>> 0; return new Uint8Array([v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF]); };
-    const push = function (a) { chunks.push(a); offset += a.length; };
-    for (const f of files) {
-      const nb = enc.encode(f.name), data = f.data, crc = crc32(data), lo = offset;
-      [u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc),
-        u32(data.length), u32(data.length), u16(nb.length), u16(0), nb].forEach(push);
-      push(data);
-      central.push({ nb: nb, crc: crc, size: data.length, lo: lo });
-    }
-    const cdStart = offset;
-    for (const c of central) {
-      [u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(c.crc),
-        u32(c.size), u32(c.size), u16(c.nb.length), u16(0), u16(0), u16(0), u16(0),
-        u32(0), u32(c.lo), c.nb].forEach(push);
-    }
-    const cdSize = offset - cdStart;
-    [u32(0x06054b50), u16(0), u16(0), u16(central.length), u16(central.length),
-      u32(cdSize), u32(cdStart), u16(0)].forEach(push);
-    const total = chunks.reduce(function (s, a) { return s + a.length; }, 0);
-    const out = new Uint8Array(total); let o = 0;
-    for (const a of chunks) { out.set(a, o); o += a.length; }
-    return out;
+
+  // MS-DOS date and time: two 16 bit words, seconds with a resolution of two.
+  function oraDos(d) {
+    return {
+      ora: ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF,
+      giorno: (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF
+    };
+  }
+
+  // Bit 11 of the general purpose flag says 'the name is UTF-8'.
+  var ZIP_UTF8 = 0x0800;
+
+  function zipDaVoci(file) {
+    var pezzi = [], centrali = [], scarto = 0, quando = oraDos(new Date());
+    var codifica = new TextEncoder();
+
+    file.forEach(function (f) {
+      var nome = codifica.encode(f.nome);
+      var dati = new Uint8Array(f.buffer);
+      var crc = crc32(dati);
+
+      var locale = new DataView(new ArrayBuffer(30));
+      locale.setUint32(0, 0x04034b50, true);
+      locale.setUint16(4, 20, true);            // version needed
+      locale.setUint16(6, ZIP_UTF8, true);
+      locale.setUint16(8, 0, true);             // method: stored
+      locale.setUint16(10, quando.ora, true);
+      locale.setUint16(12, quando.giorno, true);
+      locale.setUint32(14, crc, true);
+      locale.setUint32(18, dati.length, true);  // compressed size
+      locale.setUint32(22, dati.length, true);  // uncompressed size
+      locale.setUint16(26, nome.length, true);
+      locale.setUint16(28, 0, true);            // extra field
+      pezzi.push(locale.buffer, nome, dati);
+
+      var centrale = new DataView(new ArrayBuffer(46));
+      centrale.setUint32(0, 0x02014b50, true);
+      centrale.setUint16(4, 20, true);          // version made by
+      centrale.setUint16(6, 20, true);          // version needed
+      centrale.setUint16(8, ZIP_UTF8, true);
+      centrale.setUint16(10, 0, true);
+      centrale.setUint16(12, quando.ora, true);
+      centrale.setUint16(14, quando.giorno, true);
+      centrale.setUint32(16, crc, true);
+      centrale.setUint32(20, dati.length, true);
+      centrale.setUint32(24, dati.length, true);
+      centrale.setUint16(28, nome.length, true);
+      centrale.setUint32(42, scarto, true);     // offset of the local header
+      centrali.push(centrale.buffer, nome);
+
+      scarto += 30 + nome.length + dati.length;
+    });
+
+    var misuraCentrale = centrali.reduce(function (n, p) {
+      return n + (p.byteLength !== undefined ? p.byteLength : p.length);
+    }, 0);
+
+    var coda = new DataView(new ArrayBuffer(22));
+    coda.setUint32(0, 0x06054b50, true);
+    coda.setUint16(8, file.length, true);       // entries on this disk
+    coda.setUint16(10, file.length, true);      // entries in total
+    coda.setUint32(12, misuraCentrale, true);
+    coda.setUint32(16, scarto, true);           // where the directory starts
+    coda.setUint16(20, 0, true);                // no comment
+
+    return new Blob(pezzi.concat(centrali, [coda.buffer]), { type: 'application/zip' });
   }
 
   // Miniatura → URL alta risoluzione (toglie "t_" dal nome file).
@@ -158,8 +199,8 @@
   const TOUCH = matchMedia('(pointer: coarse)').matches;
   function stile(b) {
     Object.assign(b.style, {
-      position: 'fixed', zIndex: '2147483647', bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
-      [TOUCH ? 'left' : 'right']: '18px',
+      position: 'fixed', zIndex: '2147483647', bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+      [TOUCH ? 'left' : 'right']: '16px',
       padding: TOUCH ? '15px 16px' : '12px 16px', borderRadius: '999px', border: 'none',
       background: '#e6005c', color: '#fff',
       font: '600 14px/1 system-ui,-apple-system,sans-serif',
@@ -192,45 +233,42 @@
   async function avvia(btn) {
     if (salvaInAttesa) { salvaInAttesa(); return; }
     if (inCorso) return;
-    const urls = raccogliUrl();
-    if (!urls.length) {
-      // Riprova dopo un lazy-load, nel caso le miniature non fossero ancora nel DOM.
-      await forzaLazyLoad();
-    }
-    const lista = raccogliUrl();
-    if (!lista.length) { alert('Fapopedia+: no gallery image found on this page.'); return; }
-
     inCorso = true;
     const testoIniziale = btn.textContent;
     btn.disabled = true;
     try {
+      // One scroll through the page first, so the thumbnails that load on scrolling are in
+      // the DOM, then the one collection of the addresses: the list is read after the scroll.
       await forzaLazyLoad();
+      const lista = raccogliUrl();
+      if (!lista.length) { alert('Fapopedia Roccobot: no gallery image found on this page.'); return; }
       const dati = await scaricaTutte(lista, function (fatti, tot) {
         btn.textContent = '⬇️ ' + fatti + '/' + tot + '...';
       });
 
       const files = [];
       const visti = {};
-      let falliti = 0;
+      let falliti = 0, byte = 0;
       lista.forEach(function (u, idx) {
         const buf = dati[idx];
         if (!buf) { falliti++; return; }
         let nome = nomeFile(u);
         if (visti[nome]) nome = String(idx + 1).padStart(4, '0') + '_' + nome; // evita collisioni
         visti[nome] = 1;
-        files.push({ name: nome, data: new Uint8Array(buf) });
+        files.push({ nome: nome, buffer: buf });
+        byte += buf.byteLength;
       });
 
-      if (!files.length) { alert('Fapopedia+: no image downloaded (all of them failed).'); return; }
+      if (!files.length) { alert('Fapopedia Roccobot: no image downloaded (all of them failed).'); return; }
+      if (byte > 4294000000) throw new Error('too much for a plain ZIP: over 4 GiB');
 
       btn.textContent = '📦 Building ZIP...';
       await sleep(0); // lascia ridipingere il pulsante prima del lavoro sincrono
-      const zipBytes = creaZipStore(files);
-      const zipBlob = new Blob([zipBytes], { type: 'application/zip' });
+      const zipBlob = zipDaVoci(files);
       const aggiunte = files.length;
       preparaSalvataggio(btn, zipBlob, nomeZip(), '✅ ' + aggiunte + (falliti ? (' / ' + falliti + ' ✗') : ''), testoIniziale);
     } catch (e) {
-      alert('Fapopedia+: download error.\n' + (e && e.message ? e.message : e));
+      alert('Fapopedia Roccobot: download error.\n' + (e && e.message ? e.message : e));
       btn.textContent = testoIniziale;
     } finally {
       inCorso = false;
@@ -255,7 +293,7 @@
   if (typeof GM_registerMenuCommand !== 'undefined') {
     GM_registerMenuCommand('Download gallery (ZIP)', function () {
       const b = document.getElementById('rb-fap-dl');
-      if (b) avvia(b); else alert('Fapopedia+: open a gallery page.');
+      if (b) avvia(b); else alert('Fapopedia Roccobot: open a gallery page.');
     });
   }
 

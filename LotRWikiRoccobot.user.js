@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LotRWiki Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.0.4
+// @version      1.0.5
 // @description  Lightens Fandom's LotR wiki (lotr.fandom.com): drops the huge background image and keeps it from loading at all, then hides the ads, the right rail, the featured video and Fandom's oversized global footer. Wiki content is left alone (article, infobox, contents, categories, images). CSS only, no network request.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -77,10 +77,24 @@
     '.fandom-sticky-header { display: none !important; }'
   );
 
-  if (regole.length) {
+  // ── Start-up guard: <html> may not exist yet ──
+  // At document-start the manager may run the script before <html> is
+  // created, so document.documentElement is null and appendChild on it
+  // throws: the <style> never enters and the script does nothing. When and
+  // how early the script runs is up to the manager, so the defect shows on
+  // one device only. Same guard as QwantRoccobot.user.js: run now if <html>
+  // is there, otherwise retry on the next frame.
+  function alDocumento(fn) {
+    if (document.documentElement) { fn(); return; }
+    const riprova = () => alDocumento(fn);
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(riprova);
+    else setTimeout(riprova, 0);
+  }
+
+  if (regole.length) alDocumento(() => {
     const style = document.createElement('style');
     style.id = 'rb-lotrwiki';
     style.textContent = regole.join('\n');
     (document.head || document.documentElement).appendChild(style);
-  }
+  });
 })();

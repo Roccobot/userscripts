@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PH Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.12.3
+// @version      1.12.4
 // @description  On pornhub.com: keeps the site in English and Worldwide by rewriting the lang=en and overwriteCCVal=world cookies on every load (PH resets them to Italian now and then), and redirects the language subdomains (it.pornhub.com and so on) to www.pornhub.com so titles are never translated. Adds an always-visible download button at the bottom right: highest MP4 quality available; progress on the button; second click cancels; file named '[Channel] Title.mp4'; source read at runtime from flashvars/mediaDefinitions. Skips the video ad the player shows before playback. Also cleans up the page: removes the Google sign-in popup, hides the 'Click here to watch the full scene' overlay on the player and the AI assistant button in the header, and makes every link to another video page open in a new tab.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -115,6 +115,19 @@
   impostaPreferenze();
   if (forzaInternazionale()) return;
 
+  // ── Start-up guard: <html> may not exist yet ──
+  // At document-start the manager may run the script before <html> is created, so
+  // document.documentElement is null: the style and the observer of the clean-up go wrong
+  // inside their try blocks, in silence, and the module is left half done. How early the
+  // script runs is up to the manager, so the defect shows on one device only. Same guard as
+  // QwantRoccobot.user.js: run now if <html> is there, otherwise retry on the next frame.
+  function alDocumento(fn) {
+    if (document.documentElement) { fn(); return; }
+    const riprova = () => alDocumento(fn);
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(riprova);
+    else setTimeout(riprova, 0);
+  }
+
   // ═══════════════════════════════════════════════════════════════════════
   //  2) PULIZIA DELLA PAGINA: popup Google, invito sul video, tasto AI
   // ═══════════════════════════════════════════════════════════════════════
@@ -153,7 +166,7 @@
       const s = document.createElement('style');
       s.id = 'rb-ph-stile';
       // textContent e non innerHTML: regola non derogabile del repo.
-      s.textContent = SEL_POPUP_GOOGLE.split(',').join(',') +
+      s.textContent = SEL_POPUP_GOOGLE +
         '{display:none!important;visibility:hidden!important;pointer-events:none!important}' +
         '.rb-ph-via{display:none!important;visibility:hidden!important;pointer-events:none!important}';
       (document.head || document.documentElement).appendChild(s);
@@ -195,7 +208,10 @@
   // e nasconderlo spegnerebbe il video.
   function viaInvitoSulVideo(radice) {
     try {
-      const nodi = radice.querySelectorAll ? radice.querySelectorAll('div,span,a,p,section') : [];
+      // The root itself counts too: querySelectorAll looks at its descendants only, and a
+      // node added on its own would never be checked.
+      const nodi = radice.querySelectorAll ? Array.from(radice.querySelectorAll('div,span,a,p,section')) : [];
+      if (radice.matches && radice.matches('div,span,a,p,section')) nodi.unshift(radice);
       for (const el of nodi) {
         if (el.classList.contains('rb-ph-via')) continue;
         if (!RE_INVITO_VIDEO.test(testoProprio(el))) continue;
@@ -213,9 +229,10 @@
   // Il tasto dell'assistente AI nella testata. Si cerca solo dentro la testata e solo
   // fra gli elementi cliccabili, e si vuole un testo CORTO che cominci per 'AI': senza
   // il tetto di lunghezza, un articolo che parla di AI sparirebbe insieme al tasto.
-  function viaTastoAI(radice) {
+  // It reads every header of the document whatever was added, so it runs once per pass of the
+  // observer, never once per added node.
+  function viaTastoAI() {
     try {
-      if (!radice.querySelectorAll) return;
       const testate = document.querySelectorAll('header, #header, .headerWrapper, #headerWrapper, nav');
       for (const testata of testate) {
         for (const el of testata.querySelectorAll('a,button')) {
@@ -244,7 +261,9 @@
 
   function inSchedaNuova(radice) {
     try {
-      const link = radice.querySelectorAll ? radice.querySelectorAll('a[href]') : [];
+      // The root itself counts too, as in viaInvitoSulVideo.
+      const link = radice.querySelectorAll ? Array.from(radice.querySelectorAll('a[href]')) : [];
+      if (radice.matches && radice.matches('a[href]')) link.unshift(radice);
       for (const a of link) {
         if (a.dataset.rbTab) continue;
         if (!RE_LINK_VIDEO.test(a.getAttribute('href') || '')) continue;
@@ -257,18 +276,22 @@
 
   // Un solo giro per tutte e quattro le pulizie, e un solo osservatore: quattro
   // osservatori separati farebbero lo stesso lavoro quattro volte a ogni mutazione,
-  // e PH ne produce parecchie.
+  // e PH ne produce parecchie. The AI button is not in here: it is looked for in the
+  // whole document, once per pass (passataIntera and the end of the observer's pass).
   function passata(radice) {
     const r = radice || document;
     viaPopupGoogle(r);
     viaInvitoSulVideo(r);
-    viaTastoAI(r);
     inSchedaNuova(r);
+  }
+  function passataIntera() {
+    passata(document);
+    viaTastoAI();
   }
 
   function avviaPulizia() {
     iniettaStile();
-    passata(document);
+    passataIntera();
     try {
       new MutationObserver(function (mutazioni) {
         iniettaStile();
@@ -278,14 +301,14 @@
         // Il popup e il tasto AI possono comparire anche per un semplice cambio di
         // attributo su nodi già in pagina, che non passa da addedNodes.
         viaPopupGoogle(document);
-        viaTastoAI(document);
+        viaTastoAI();
       }).observe(document.documentElement, { subtree: true, childList: true });
     } catch (e) { /* mai rompere la pagina */ }
-    document.addEventListener('DOMContentLoaded', function () { passata(document); });
-    window.addEventListener('load', function () { passata(document); });
+    document.addEventListener('DOMContentLoaded', passataIntera);
+    window.addEventListener('load', passataIntera);
   }
 
-  avviaPulizia();
+  alDocumento(avviaPulizia);
 
   // ═══════════════════════════════════════════════════════════════════════
   //  4) TASTO "Scarica video": qualità massima
@@ -295,12 +318,6 @@
   // Alcune voci sono "remote" (videoUrl = endpoint get_media che restituisce
   // il JSON con gli URL per-qualità). Si leggono a runtime, si espandono le
   // remote, si tiene l'mp4 di qualità più alta.
-
-  // Pagina video? (per mostrare il pulsante anche prima di aver risolto la sorgente)
-  function ePaginaVideo() {
-    if (/view_video\.php|[?&]viewkey=|\/video\//i.test(location.href)) return true;
-    return !!document.querySelector('#player, .mgp_container, [id^="player"] video, video');
-  }
 
   // flashvars: prima dall'oggetto globale (unsafeWindow), poi, se non si trova,
   // parsando il testo degli <script> (più robusto: non dipende dall'enumerazione
@@ -383,8 +400,10 @@
     return (s || '').replace(/[\/\\:*?"<>|\x00-\x1f]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
+  // HTML entities of the title decoded by a detached document: DOMParser runs no script and
+  // loads nothing, and the page's DOM is never written (the repo rule is: never innerHTML).
   function decodeEntita(s) {
-    try { const ta = document.createElement('textarea'); ta.innerHTML = s; return ta.value; } catch (e) { return s; }
+    try { return new DOMParser().parseFromString(s, 'text/html').documentElement.textContent; } catch (e) { return s; }
   }
 
   function titolo() {
@@ -438,7 +457,14 @@
   }
 
   const SFONDO_BASE = '#ff9000';
-  function sfondo(btn, css) { if (btn) btn.style.setProperty('background', css, 'important'); }
+  // Black text on orange and green, white on the red states: black on #d0021b measures 3.71,
+  // under the 4.5 of WCAG AA, white on it 5.67.
+  const ROSSO = '#d0021b';
+  function sfondo(btn, css) {
+    if (!btn) return;
+    btn.style.setProperty('background', css, 'important');
+    btn.style.setProperty('color', css === ROSSO ? '#fff' : '#000', 'important');
+  }
 
   // Stato del download in corso (per poterlo ANNULLARE con un secondo clic).
   var dlAttivo = false;      // c'è un'operazione in corso?
@@ -479,7 +505,7 @@
     dlAttivo = false;
     if (btn) {
       btn.textContent = '✖︎ cancelled';
-      sfondo(btn, '#d0021b');
+      sfondo(btn, ROSSO);
       setTimeout(function () {
         if (!dlAttivo) { btn.textContent = '⬇️ Download video'; sfondo(btn, SFONDO_BASE); }
       }, 3500);
@@ -517,12 +543,12 @@
         if (dlAnnullato) return; // l'errore è l'abort volontario: nessun ripiego
         // ripiego: apri l'URL così l'utente può salvarlo a mano
         window.open(best.url, '_blank', 'noopener');
-        if (btn) { btn.textContent = '↗︎ opened'; sfondo(btn, '#d0021b'); }
+        if (btn) { btn.textContent = '↗︎ opened'; sfondo(btn, ROSSO); }
       }
     } catch (e) {
       if (dlAnnullato) return;
       alert('PH Roccobot: could not prepare the download.\n' + (e && e.message ? e.message : e));
-      if (btn) { btn.textContent = '⚠️ Error'; sfondo(btn, '#d0021b'); }
+      if (btn) { btn.textContent = '⚠️ Error'; sfondo(btn, ROSSO); }
     } finally {
       const eraAnnullato = dlAnnullato;
       dlAttivo = false; dlHandle = null;

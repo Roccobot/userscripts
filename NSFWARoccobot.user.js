@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NSFWA Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.2.4
+// @version      1.2.5
 // @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the real image becomes clickable again, so open-image and save-image reach the actual image file; #zoom is forced visible and on top, and the SVG and lens decoys over it are neutralized, hidden #zoom included. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
@@ -31,6 +31,19 @@
   const suPhoto = /\/photo\//i.test(location.pathname);
   const suAlbum = /\/album\//i.test(location.pathname);
   const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+  // ── Start-up guard: <html> may not exist yet ──
+  // At document-start the manager may run the script before <html> is created, so
+  // document.documentElement is null: the photo module's appendChild on it throws before the
+  // listeners are registered, and the module does nothing. How early the script runs is up to
+  // the manager, so the defect shows on one device only. Same guard as QwantRoccobot.user.js:
+  // run now if <html> is there, otherwise retry on the next frame.
+  function alDocumento(fn) {
+    if (document.documentElement) { fn(); return; }
+    const riprova = () => alDocumento(fn);
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(riprova);
+    else setTimeout(riprova, 0);
+  }
 
   // ═══════════════════════════════════════════════════════════════════════
   //  MODULO FOTO (/photo/<id>): apri/salva immagine → file vero
@@ -127,34 +140,92 @@
   // Un album su pixhost non aveva il pulsante, perché qui si cercava solo imx.to. ZIP creato da
   // un writer interno (metodo "store": le JPEG sono già compresse; niente dipendenze).
   function moduloAlbum() {
-    // ── Writer ZIP interno ──
-    const CRC_TABLE = (function () {
-      const t = new Uint32Array(256);
-      for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; }
+    // ── The ZIP writer: the same code as ENFRoccobot.user.js (section 5b) ──
+    // Stored entries, no library: JPEGs are compressed already. Each script is a single file,
+    // so the writer has three copies, and they are kept identical. The entries are handed to a
+    // Blob, which never copies the pixels, and carry the real DOS date and time (an all-zero
+    // date reads as 1980-00-00). Plain zip32: the caller keeps the archive under 4 GiB.
+    var TABELLA_CRC = (function () {
+      var t = new Uint32Array(256);
+      for (var n = 0; n < 256; n++) {
+        var c = n;
+        for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        t[n] = c >>> 0;
+      }
       return t;
     })();
-    function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
-    function creaZipStore(files) {
-      const enc = new TextEncoder(); const chunks = []; const central = []; let offset = 0;
-      const u16 = function (v) { return new Uint8Array([v & 0xFF, (v >>> 8) & 0xFF]); };
-      const u32 = function (v) { v = v >>> 0; return new Uint8Array([v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF]); };
-      const push = function (a) { chunks.push(a); offset += a.length; };
-      for (const f of files) {
-        const nb = enc.encode(f.name), data = f.data, crc = crc32(data), lo = offset;
-        [u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc), u32(data.length), u32(data.length), u16(nb.length), u16(0), nb].forEach(push);
-        push(data);
-        central.push({ nb: nb, crc: crc, size: data.length, lo: lo });
-      }
-      const cdStart = offset;
-      for (const c of central) {
-        [u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(c.crc), u32(c.size), u32(c.size), u16(c.nb.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(c.lo), c.nb].forEach(push);
-      }
-      const cdSize = offset - cdStart;
-      [u32(0x06054b50), u16(0), u16(0), u16(central.length), u16(central.length), u32(cdSize), u32(cdStart), u16(0)].forEach(push);
-      const total = chunks.reduce(function (s, a) { return s + a.length; }, 0);
-      const out = new Uint8Array(total); let o = 0;
-      for (const a of chunks) { out.set(a, o); o += a.length; }
-      return out;
+
+    function crc32(bytes) {
+      var c = 0xFFFFFFFF;
+      for (var i = 0; i < bytes.length; i++) c = TABELLA_CRC[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+      return (c ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    // MS-DOS date and time: two 16 bit words, seconds with a resolution of two.
+    function oraDos(d) {
+      return {
+        ora: ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF,
+        giorno: (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF
+      };
+    }
+
+    // Bit 11 of the general purpose flag says 'the name is UTF-8'.
+    var ZIP_UTF8 = 0x0800;
+
+    function zipDaVoci(file) {
+      var pezzi = [], centrali = [], scarto = 0, quando = oraDos(new Date());
+      var codifica = new TextEncoder();
+
+      file.forEach(function (f) {
+        var nome = codifica.encode(f.nome);
+        var dati = new Uint8Array(f.buffer);
+        var crc = crc32(dati);
+
+        var locale = new DataView(new ArrayBuffer(30));
+        locale.setUint32(0, 0x04034b50, true);
+        locale.setUint16(4, 20, true);            // version needed
+        locale.setUint16(6, ZIP_UTF8, true);
+        locale.setUint16(8, 0, true);             // method: stored
+        locale.setUint16(10, quando.ora, true);
+        locale.setUint16(12, quando.giorno, true);
+        locale.setUint32(14, crc, true);
+        locale.setUint32(18, dati.length, true);  // compressed size
+        locale.setUint32(22, dati.length, true);  // uncompressed size
+        locale.setUint16(26, nome.length, true);
+        locale.setUint16(28, 0, true);            // extra field
+        pezzi.push(locale.buffer, nome, dati);
+
+        var centrale = new DataView(new ArrayBuffer(46));
+        centrale.setUint32(0, 0x02014b50, true);
+        centrale.setUint16(4, 20, true);          // version made by
+        centrale.setUint16(6, 20, true);          // version needed
+        centrale.setUint16(8, ZIP_UTF8, true);
+        centrale.setUint16(10, 0, true);
+        centrale.setUint16(12, quando.ora, true);
+        centrale.setUint16(14, quando.giorno, true);
+        centrale.setUint32(16, crc, true);
+        centrale.setUint32(20, dati.length, true);
+        centrale.setUint32(24, dati.length, true);
+        centrale.setUint16(28, nome.length, true);
+        centrale.setUint32(42, scarto, true);     // offset of the local header
+        centrali.push(centrale.buffer, nome);
+
+        scarto += 30 + nome.length + dati.length;
+      });
+
+      var misuraCentrale = centrali.reduce(function (n, p) {
+        return n + (p.byteLength !== undefined ? p.byteLength : p.length);
+      }, 0);
+
+      var coda = new DataView(new ArrayBuffer(22));
+      coda.setUint32(0, 0x06054b50, true);
+      coda.setUint16(8, file.length, true);       // entries on this disk
+      coda.setUint16(10, file.length, true);      // entries in total
+      coda.setUint32(12, misuraCentrale, true);
+      coda.setUint32(16, scarto, true);           // where the directory starts
+      coda.setUint16(20, 0, true);                // no comment
+
+      return new Blob(pezzi.concat(centrali, [coda.buffer]), { type: 'application/zip' });
     }
 
     // ── Metadati → nome ZIP "[studio] - [modella] - [titolo]" ──
@@ -260,29 +331,30 @@
       if (salvaInAttesa) { salvaInAttesa(); return; }
       if (inCorso) return;
       const lista = urlPienaRisoluzione();
-      if (!lista.length) { alert('NSFWAlbum+: no image found on this page.'); return; }
+      if (!lista.length) { alert('NSFWA Roccobot: no image found on this page.'); return; }
       inCorso = true;
       if (btn) btn.disabled = true;
       try {
         const res = await scaricaTutte(lista, function (fatti, tot) { if (btn) btn.textContent = '⬇️ ' + fatti + '/' + tot + '...'; });
         const larg = String(lista.length).length < 3 ? 3 : String(lista.length).length;
-        const files = []; let n = 0;
+        const files = []; let n = 0, byte = 0;
         for (let i = 0; i < lista.length; i++) {
           const buf = res.dati[i];
           if (!buf) continue;
-          files.push({ name: String(i + 1).padStart(larg, '0') + estensione(lista[i]), data: new Uint8Array(buf) });
+          files.push({ nome: String(i + 1).padStart(larg, '0') + estensione(lista[i]), buffer: buf });
+          byte += buf.byteLength;
           n++;
         }
-        if (!files.length) { alert('NSFWAlbum+: no image downloaded (all of them failed).'); return; }
+        if (!files.length) { alert('NSFWA Roccobot: no image downloaded (all of them failed).'); return; }
+        if (byte > 4294000000) throw new Error('too much for a plain ZIP: over 4 GiB');
         if (btn) btn.textContent = '📦 Building ZIP...';
         await sleep(0);
-        const zipBytes = creaZipStore(files);
-        const blob = new Blob([zipBytes], { type: 'application/zip' });
+        const blob = zipDaVoci(files);
         preparaSalvataggio(btn, blob, nomeZip(), '✅ ' + n + '/' + lista.length + (n < lista.length ? ' (some failed)' : ''));
         if (!btn) salvaInAttesa(); // no pill to tap: try at once (menu without the pill)
       } catch (e) {
         if (btn) btn.textContent = '⚠️ Error';
-        alert('NSFWAlbum+: download error.\n' + (e && e.message ? e.message : e));
+        alert('NSFWA Roccobot: download error.\n' + (e && e.message ? e.message : e));
       } finally {
         inCorso = false;
         if (btn) {
@@ -331,6 +403,6 @@
     else setup();
   }
 
-  if (suPhoto) moduloFoto();
+  if (suPhoto) alDocumento(moduloFoto);
   if (suAlbum) moduloAlbum();
 })();
