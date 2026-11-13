@@ -244,7 +244,7 @@ Un file più specifico vince **dove parla**, e il suo silenzio non è una deroga
 
 ## 🧭 Il nucleo di `userscripts`
 
-- **Che cosa c'è qui**: gli userscript per Tampermonkey (`*.user.js`), la pagina d'installazione
+- **Che cosa c'è qui**: gli userscript per Violentmonkey (`*.user.js`), la pagina d'installazione
   (`index.html`), la pagina delle opzioni di 'Decent Image Viewer' (`DIVOptions.html`) e la sonda
   `ScrollProbe.html`. Il repo è servito da Pages a `https://roccobot.github.io/userscripts/`, e
   ogni script si installa e si aggiorna dal suo URL, scritto in `@updateURL` e `@downloadURL`
@@ -257,7 +257,7 @@ Un file più specifico vince **dove parla**, e il suo silenzio non è una deroga
 - **Versione SemVer**, con la fonte unica nel `@version` dell'intestazione di ogni script:
   `patch` per i fix e i commenti, `minor` per le funzioni nuove, `major` per un cambio che
   azzera le preferenze salvate (la 3.0.0 di DIV, che ha rinominato le chiavi). Senza
-  bump Tampermonkey non scarica l'aggiornamento.
+  bump Violentmonkey non scarica l'aggiornamento.
 - **Verifica di pubblicazione**: un `curl` sul file pubblicato, confrontando il suo `@version`
   con quello atteso. Dopo **ogni** go-live, anche di una patch, si ridà il link di
   installazione (`https://roccobot.github.io/userscripts/NOME.user.js`).

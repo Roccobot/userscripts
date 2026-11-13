@@ -1,8 +1,8 @@
-# Userscript per Tampermonkey
+# Userscript per Violentmonkey
 
 Script personali per il browser, gestiti dall'estensione
-[Tampermonkey](https://www.tampermonkey.net/). Essendo ospitati su
-GitHub Pages, si installano (e si aggiornano) direttamente dal loro URL.
+[Violentmonkey](https://violentmonkey.github.io/), sul computer e sul telefono. Essendo
+ospitati su GitHub Pages, si installano (e si aggiornano) direttamente dal loro URL.
 
 > **Icona di default.** Tutti gli userscript del repo usano la stessa icona
 > (`Roccobot.png`, in questa cartella), dichiarata nell'intestazione con:
@@ -69,10 +69,10 @@ Uno script unico per Qwant, con tre funzioni:
 
 ### Installazione
 
-1. Installare l'estensione Tampermonkey nel browser (se non c'è già).
+1. Installare Violentmonkey nel browser, sul computer o sul telefono (se non c'è già).
 2. Aprire questo indirizzo:
    <https://roccobot.github.io/userscripts/QwantRoccobot.user.js>
-3. Tampermonkey mostra la pagina di installazione: premere **Installa**.
+3. Violentmonkey mostra la pagina di installazione: premere **Installa**.
 
 Gli aggiornamenti futuri arrivano da soli (`@updateURL`).
 
@@ -80,7 +80,7 @@ Gli aggiornamenti futuri arrivano da soli (`@updateURL`).
 > `qwant-immagini-dirette.user.js`. Dato che il nome del file (e quindi l'URL) è
 > cambiato, la vecchia versione **non** si aggiorna da sola: installa
 > `QwantRoccobot.user.js` dal nuovo indirizzo e disinstalla la vecchia dal
-> cruscotto di Tampermonkey.
+> pannello di controllo di Violentmonkey.
 
 ### Personalizzazione
 
@@ -94,15 +94,19 @@ const HOME_SENZA_SCROLL   = true;  // home: niente scroll verticale (solo logo +
 const HOME_ESSENZIALE     = true;  // home: solo logo e campo (niente payoff, 'Cerca', lente, né altro sotto)
 const NASCONDI_PROMO      = true;  // tile, card promozionali, banner app, promo estensione
 const NASCONDI_ADS_SIDEBAR = true; // SERP: pubblicità nella colonna a destra (preserva "Notizie")
+const NASCONDI_FASCIA_IMMAGINI = true; // SERP web: la fascia "Immagini <query>" (anteprime inline)
 const SOSTITUISCI_DOODLE  = true;  // doodle/veste evento → logo Qwant ufficiale
 const LOGO_PERSONALIZZATO = '';    // URL di un logo a scelta; vuoto = logo ufficiale integrato
 const APRI_IN_NUOVA_SCHEDA = true; // immagini: nuova scheda (true) o corrente (false)
 const IMMAGINI_DIRETTE    = true;  // false = disattiva il modulo immagini (solo pulizia)
 const CAROSELLO_TELEFONO  = true;  // telefono: risultati immagini come carosello a tutto schermo
+const BYPASS_REDIRECT_WEB = true;  // web: i link dei risultati saltano il redirect di tracciamento
+                                   // (sperimentale: se tornano i 403 di Qwant, metterlo a false)
+const FORZA_PARAMETRI     = true;  // i parametri di ricerca preferiti a ogni ricerca nuova
 ```
 
-Per cambiarli: icona Tampermonkey → *Dashboard* → clic sul nome dello script →
-modificare i valori → salvare (Ctrl+S).
+Per cambiarli: icona di Violentmonkey → pannello di controllo → tasto di modifica dello
+script → modificare i valori → salvare (Ctrl+S).
 
 ### Come funziona
 
@@ -206,7 +210,7 @@ Tutto-in-uno per `nsfwalbum.com` (unisce e sostituisce *NSFWAlbum Enhancer* +
   pagina). Full-res dai due host del sito: imx.to (thumb `//image.imx.to/u/t/...` →
   file `//i.imx.to/i/...`) e pixhost (thumb `//t3.pixhost.cc/thumbs/...` → file
   `//img3.pixhost.cc/images/...`, dalla 1.2.3); ZIP creato da un **writer interno** (metodo *store*, nessuna
-  dipendenza); file numerati in ordine d'album. Dalla 1.2.4, a ZIP pronto il
+  dipendenza; dalla 1.2.5 è lo stesso di ENF, e i file hanno la data vera); file numerati in ordine d'album. Dalla 1.2.4, a ZIP pronto il
   pulsante diventa **'💾 Save'**: un secondo tocco salva il file. Serve al
   telefono, dove il browser accetta il salvataggio solo dentro un tocco.
 
@@ -220,15 +224,15 @@ const TIMEOUT_MS     = 60000;  // pagina album: timeout per immagine
 
 ### Installazione
 
-1. Installare Tampermonkey (se non c'è già).
+1. Installare Violentmonkey nel browser, sul computer o sul telefono (se non c'è già).
 2. Aprire: <https://roccobot.github.io/userscripts/NSFWARoccobot.user.js>
-3. Premere **Installa**. Sulla pagina album, concedere il permesso
-   `GM_xmlhttpRequest` verso `imx.to` e `pixhost.cc` (serve a scaricare le immagini).
+3. Premere **Installa**. Sulla pagina album lo script scarica le immagini da `imx.to` e
+   `pixhost.cc` con `GM_xmlhttpRequest`.
 
 > **Aggiorni da una versione precedente?** Questo script era `NSFWAlbum+`
 > (`NSFWAlbumPlus.user.js`). Dato che nome file e URL sono cambiati, la vecchia
 > versione **non** si aggiorna da sola: installa `NSFWARoccobot.user.js` dal nuovo
-> indirizzo e disinstalla la vecchia dal cruscotto di Tampermonkey.
+> indirizzo e disinstalla la vecchia dal pannello di controllo di Violentmonkey.
 
 ## Fapopedia Roccobot
 
@@ -254,10 +258,11 @@ browser accetta il salvataggio solo dentro un tocco.
 
 > **Nota tecnica (dalla v1.1.0):** lo ZIP è generato da un piccolo writer
 > incorporato, **senza dipendenze esterne**. Le versioni 1.0.x usavano JSZip (via
-> `@require`), ma nella sandbox di Tampermonkey la sua `generateAsync` si bloccava
+> `@require`), ma nella sandbox del gestore di userscript la sua `generateAsync` si bloccava
 > in fase di compressione (pulsante fermo sull'etichetta di avanzamento, oggi
 > `📦 Building ZIP...`). Il writer *store* è
-> sincrono, deterministico e verificato (`unzip -t` OK).
+> sincrono e verificato (`unzip -t` OK); dalla 1.3.4 è lo stesso di ENF e di NSFWA, e i
+> file dentro l'archivio hanno la data vera (prima `1980-00-00`).
 
 ### Personalizzazione
 
@@ -268,16 +273,15 @@ const TIMEOUT_MS = 60000;  // timeout per singola immagine
 
 ### Installazione
 
-1. Installare Tampermonkey (se non c'è già).
+1. Installare Violentmonkey nel browser, sul computer o sul telefono (se non c'è già).
 2. Aprire: <https://roccobot.github.io/userscripts/FapopediaRoccobot.user.js>
-3. Premere **Installa**. Tampermonkey può chiedere il permesso per
-   `GM_xmlhttpRequest` verso `fapopedia.net`: concederlo (serve a scaricare le
-   immagini). Nessuna dipendenza esterna: lo ZIP è creato internamente.
+3. Premere **Installa**. Lo script scarica le immagini da `fapopedia.net` con
+   `GM_xmlhttpRequest`. Nessuna dipendenza esterna: lo ZIP è creato internamente.
 
 > **Aggiorni da una versione precedente?** Questo script era `Fapopedia+`
 > (`FapopediaPlus.user.js`). Dato che nome file e URL sono cambiati, la vecchia
 > versione **non** si aggiorna da sola: installa `FapopediaRoccobot.user.js` dal
-> nuovo indirizzo e disinstalla la vecchia dal cruscotto di Tampermonkey.
+> nuovo indirizzo e disinstalla la vecchia dal pannello di controllo di Violentmonkey.
 
 ## LotRWiki Roccobot
 
@@ -307,14 +311,14 @@ ricerca e navigazione: solo lo sfondo e la cornice pesante attorno.
 
 ### Installazione
 
-1. Installare Tampermonkey (se non c'è già).
+1. Installare Violentmonkey nel browser, sul computer o sul telefono (se non c'è già).
 2. Aprire: <https://roccobot.github.io/userscripts/LotRWikiRoccobot.user.js>
 3. Premere **Installa**.
 
 > **Aggiorni da una versione precedente?** Questo script era `LotRWiki`
 > (`LotRWiki.user.js`). Dato che nome file e URL sono cambiati, la vecchia
 > versione **non** si aggiorna da sola: installa `LotRWikiRoccobot.user.js` dal
-> nuovo indirizzo e disinstalla la vecchia dal cruscotto di Tampermonkey.
+> nuovo indirizzo e disinstalla la vecchia dal pannello di controllo di Violentmonkey.
 
 ### Personalizzazione
 
@@ -404,10 +408,10 @@ dello script: `RE_INVITO_VIDEO`, `RE_TASTO_AI` e `SEL_POPUP_GOOGLE`.
 
 ### Installazione
 
-1. Installare Tampermonkey (se non c'è già).
+1. Installare Violentmonkey nel browser, sul computer o sul telefono (se non c'è già).
 2. Aprire: <https://roccobot.github.io/userscripts/PHRoccobot.user.js>
-3. Premere **Installa** e concedere i permessi richiesti (`GM_download`,
-   `GM_xmlhttpRequest`) per scaricare i file.
+3. Premere **Installa**. Lo script scarica i file con `GM_download` e
+   `GM_xmlhttpRequest`.
 
 > **Nota:** PornHub blocca gli strumenti automatici, quindi non ho potuto
 > verificare lo script sul sito dal vivo: è scritto per **adattarsi a runtime**
@@ -677,7 +681,7 @@ peso**, e soprattutto un comportamento di visualizzazione controllato:
   dell'albero per la pulizia partono la prima volta che lo si apre.
 
 > **Perché non SVGO vero.** Il bundle browser di SVGO è un modulo ES da 890 KB, e
-> `@require` di Tampermonkey esegue script classici: si prende un `SyntaxError` e basta
+> `@require` dei gestori di userscript esegue script classici: si prende un `SyntaxError` e basta
 > (provato). Andrebbe caricato a mano, e peserebbe su ogni pagina. In più il suo
 > `preset-default` include `removeViewBox`, che su questo stesso visualizzatore
 > **romperebbe lo zoom** (senza `viewBox` l'SVG non scala più), e riscrive i tracciati:
@@ -686,7 +690,7 @@ peso**, e soprattutto un comportamento di visualizzazione controllato:
 
 ### Personalizzazione: la pagina delle opzioni
 
-Dalla **2.21** non si modifica più il sorgente. Nel menu di Tampermonkey (l'icona
+Dalla **2.21** non si modifica più il sorgente. Nel menu di Violentmonkey (l'icona
 dell'estensione) lo script espone la voce **Options**, che apre
 <https://roccobot.github.io/userscripts/DIVOptions.html>: ogni modifica si salva subito, e
 per vederla basta ricaricare la pagina-immagine.
@@ -698,7 +702,7 @@ per vederla basta ricaricare la pagina-immagine.
 
 > ⚠️ **La voce di menu resta in inglese anche con l'interfaccia in italiano**, per scelta
 > dell'utente: è la consuetudine degli userscript multilingua, e quel menu appartiene al
-> gestore (Tampermonkey), non allo script, quindi sta in mezzo alle voci delle altre
+> gestore (Violentmonkey), non allo script, quindi sta in mezzo alle voci delle altre
 > estensioni. Il pannello che apre è invece bilingue, titolo della scheda compreso.
 
 > ⚠️ **La pagina è un guscio, e il pannello lo disegna lo script.** Le impostazioni vivono
@@ -796,13 +800,13 @@ Nessun tasto scatta mentre si scrive in un campo.
 
 ### Installazione
 
-1. Installare Tampermonkey (se non c'è già).
+1. Installare Violentmonkey nel browser, sul computer o sul telefono (se non c'è già).
 2. Aprire: <https://roccobot.github.io/userscripts/DIVRoccobot.user.js>
 3. Premere **Installa**.
 
 > **File locali (`file:///...`):** lo script agisce anche sulle immagini aperte
-> da disco, ma serve abilitare in Tampermonkey l'opzione **'Consenti l'accesso
-> agli URL dei file'** (Chrome/Vivaldi: pagina delle estensioni → Tampermonkey →
+> da disco, ma serve abilitare per Violentmonkey l'opzione **'Consenti l'accesso
+> agli URL dei file'** (Chrome/Vivaldi: pagina delle estensioni → Violentmonkey →
 > Dettagli → 'Consenti l'accesso agli URL dei file'). Il peso del file potrebbe
 > non essere leggibile in locale su alcuni browser: in tal caso non compare, il
 > resto (sfondo, dimensioni, zoom) funziona comunque.
@@ -811,7 +815,7 @@ Nessun tasto scatta mentre si scrive in un campo.
 > `DecentImageViewer.user.js` a `DIVRoccobot.user.js` (il titolo `@name` resta
 > `Decent Image Viewer`). Dato che l'URL è cambiato, la vecchia versione **non** si
 > aggiorna da sola: installa `DIVRoccobot.user.js` dal nuovo indirizzo e disinstalla
-> la vecchia dal cruscotto di Tampermonkey.
+> la vecchia dal pannello di controllo di Violentmonkey.
 
 > **Nota:** override del visualizzatore-immagine nativo del browser. Su alcuni browser
 > lo zoom-clic nativo è a livello di motore e non del tutto sopprimibile via JS: lo
@@ -822,7 +826,7 @@ Nessun tasto scatta mentre si scrive in un campo.
 
 **File:** `ScrollProbe.html`, in questa stessa cartella. Si apre da
 <https://roccobot.github.io/userscripts/ScrollProbe.html> oppure da disco con un doppio
-clic, e non richiede né Tampermonkey né un server locale.
+clic, e non richiede né Violentmonkey né un server locale.
 
 A che serve: misura **come il dispositivo di puntamento manda gli eventi di scorrimento**
 (ampiezza, verso, componente orizzontale, `wheelDeltaY`, cadenza in millisecondi) e dice,
@@ -1007,6 +1011,7 @@ const SALVA_CON_DIALOGO  = true;  // true = chiede dove salvare (Chromium deskto
 const SEGMENTI_PARALLELI = 5;     // HLS: quanti segmenti scaricare insieme
 const TENTATIVI_SEGMENTO = 3;     // HLS: ritentativi per singolo segmento
 const QUALITA_HLS        = 'max'; // 'max' o 'min' quando il flusso ha più varianti
+const FORZA_INGLESE      = true;  // xhamster: porta i sottodomini di lingua su xhamster.com
 const IMMAGINI_PARALLELE = 4;     // ZIP: quante immagini scaricare insieme
 const TENTATIVI_IMMAGINE = 2;     // ZIP: ritentativi per singola immagine
 const LATO_MINIMO_IMG    = 260;   // ZIP: sotto questa larghezza è un'icona, non una foto
@@ -1014,10 +1019,9 @@ const LATO_MINIMO_IMG    = 260;   // ZIP: sotto questa larghezza è un'icona, no
 
 ### Installazione
 
-1. Installare Tampermonkey (se non c'è già).
+1. Installare Violentmonkey nel browser, sul computer o sul telefono (se non c'è già).
 2. Aprire: <https://roccobot.github.io/userscripts/ENFRoccobot.user.js>
-3. Premere **Installa** e concedere i permessi richiesti (`GM_download`,
-   `GM_xmlhttpRequest`) per scaricare i file.
+3. Premere **Installa**. Lo script scarica i file con `GM_xmlhttpRequest`.
 
 > **Nota:** i player embedded di terze parti in `<iframe>` non sono coperti (lo
 > script gira solo nella pagina principale, `@noframes`). Nei post esaminati non

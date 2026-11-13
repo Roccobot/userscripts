@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Userscript</title>
 <meta name="description" content="Gli userscript di Roccobot per Violentmonkey, un tocco dall'installazione.">
+<meta name="robots" content="noindex">
 <link rel="icon" href="Roccobot.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,6 +18,27 @@
   with nothing stored. Author: Rocco Casadei, a.k.a. Roccobot
 -->
 <style>
+  /* A fallback measured on Archivo, so the swap to the web font does not move the page (the
+     Vaglio audit measured a layout shift of 0.12 at 390 px). Arial at the width of Archivo:
+     size-adjust is the ratio of the two widths on the page's own sentences, measured in
+     Chromium for each weight the page uses (400, 600, 700); the ascent and descent are
+     Archivo's (0.88 and 0.21 em), divided by size-adjust. Where Arial is missing (Android) the
+     face is skipped, and the next font of the stack is used as before. */
+  @font-face {
+    font-family: "Archivo ripiego"; font-weight: 400 500;
+    src: local("Arial"), local("ArialMT"), local("Liberation Sans");
+    size-adjust: 98.4%; ascent-override: 89.4%; descent-override: 21.3%; line-gap-override: 0%;
+  }
+  @font-face {
+    font-family: "Archivo ripiego"; font-weight: 600;
+    src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold");
+    size-adjust: 95%; ascent-override: 92.6%; descent-override: 22.1%; line-gap-override: 0%;
+  }
+  @font-face {
+    font-family: "Archivo ripiego"; font-weight: 700;
+    src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold");
+    size-adjust: 98.3%; ascent-override: 89.5%; descent-override: 21.4%; line-gap-override: 0%;
+  }
   :root {
     color-scheme: light;
     --turchese: #43b59e;
@@ -32,7 +54,7 @@
     --linea: #dad9d5;
     --raggio-pieno: 999px;
     --raggio-scheda-web: 14px;
-    --tipo: Archivo, "Helvetica Neue", Arial, sans-serif;
+    --tipo: Archivo, "Archivo ripiego", "Helvetica Neue", Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -86,9 +108,15 @@
   .name { font-weight: 700; font-size: 1.05rem; margin: 0; }
   .ver { color: var(--testo-secondario); font-weight: 400; font-size: .85rem; margin-left: .4rem; white-space: nowrap; }
   .site { grid-column: 1; color: var(--testo-accento); font-size: .85rem; margin: 0; }
+  /* A list of sites takes the whole width of the card, under the install button: beside it, at
+     390 px, the first site went alone on its line. */
+  .card.sites .install { grid-row: 1; }
+  .card.sites .site { grid-column: 1 / -1; }
   .blurb { grid-column: 1 / -1; margin: .35rem 0 0; }
   .more { grid-column: 1 / -1; font-size: .85rem; margin: .2rem 0 0; }
-  .more a { color: var(--testo-secondario); }
+  .more a { color: var(--testo-secondario); position: relative; }
+  /* A 44 px touch area, centred on the link, that leaves the line as it is */
+  .more a::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
   .install {
     grid-column: 2; grid-row: 1 / span 2; text-decoration: none; font-weight: 700;
     background: var(--accento); color: var(--contenuto-su-accento); border-radius: var(--raggio-pieno); padding: .65rem 1.1rem;
@@ -251,7 +279,7 @@
 
   // One card per script, added to the given list
   function addCard(list, s) {
-    const card = el('article', 'card');
+    const card = el('article', s.site.it.indexOf(',') === -1 ? 'card' : 'card sites');
     const name = el('h2', 'name', s.name);
     const ver = el('span', 'ver');
     name.appendChild(ver);
@@ -280,8 +308,9 @@
       more
     );
     list.appendChild(card);
-    // the version comes from the script itself: one source, never stale
-    fetch(s.file, { cache: 'no-cache' })
+    // the version comes from the script itself: one source, never stale. @version is in the
+    // first few hundred bytes, so only the head of the file is asked for (Pages answers 206).
+    fetch(s.file, { cache: 'no-cache', headers: { Range: 'bytes=0-2047' } })
       .then(function (r) { return r.ok ? r.text() : ''; })
       .then(function (t) {
         const m = /@version\s+(\S+)/.exec(t);
@@ -381,8 +410,12 @@
     if (on && !more.firstChild) for (const s of SCRIPTS) if (s.hidden) addCard(more, s);
     more.hidden = !on;
     dot.setAttribute('aria-expanded', String(on));
-    // the new cards appear above the footer: bring them into view
-    if (on) more.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    // the new cards appear above the footer: bring them into view, and move the focus to the
+    // first new install button, or the next Tab would leave the page from the dot
+    if (on) {
+      more.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      more.querySelector('.install').focus({ preventScroll: true });
+    }
   });
 </script>
 </body>

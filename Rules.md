@@ -1,6 +1,6 @@
 # Rules.md: userscript (`userscripts/`)
 
-> **Cos'è questo file.** Il testo completo delle regole degli **userscript** Tampermonkey
+> **Cos'è questo file.** Il testo completo delle regole degli **userscript** per Violentmonkey
 > ospitati su GitHub Pages; le regole trasversali vivono nell'**hub**, il repo
 > `Roccobot/roccobot.github.io`. Vale per **tutti gli agenti**: il nucleo, cioè ogni regola in
 > una riga, vive in `AGENTS.md`, e questo file ne dà il perché. Dal 2026-10-10 nessun agente lo
@@ -11,8 +11,12 @@
 
 ## 🧩 Userscript (`/userscripts`)
 
-- Progetto a sé: script Tampermonkey ospitati su GitHub Pages, installabili e
-  aggiornabili dal loro URL.
+- Progetto a sé: script per Violentmonkey, sul computer e sul telefono, ospitati su GitHub
+  Pages, installabili e aggiornabili dal loro URL. ⚠️ **I testi nominano solo Violentmonkey**
+  (scelta `Gestore-02` dell'utente, 2026-11-13): il `README.md`, queste regole, `AGENTS.md`
+  e le `@description`. Violentmonkey non applica `@connect`, quindi le voci `@connect` che
+  mancano o abbondano (il `*` di PH e di ENF, nessuna in DIV) non cambiano niente e restano
+  come sono.
 - **Prima di generare un NUOVO userscript, chiedere sempre all'utente** il
   **nome del file** `.js` e il **titolo** (`@name`) da assegnare. Non deciderli
   in autonomia: attendere la risposta prima di creare il file. (Vale per i nuovi
@@ -49,6 +53,14 @@
     richiesti. Uno script nuovo per adulti nasce con `hidden: true`.
   - ⚠️ **È discrezione, non protezione**: i file `.user.js`, il `README.md` e la pagina su GitHub
     restano pubblici, e il nome dei quattro script compare nel sorgente della pagina.
+  - **La pagina non si indicizza** (`noindex`, scelta `Motori-01` dell'utente, 2026-11-13), come le
+    pagine di servizio dell'hub, e resta fuori dalla mappa del dominio. Dallo stesso giro (`Vaglio`):
+    il font ha un ripiego misurato su Archivo (`Archivo ripiego`, Arial con `size-adjust`), così
+    l'arrivo del font non sposta la pagina (lo spostamento era 0,096 a 390 px); una lista di siti
+    prende tutta la larghezza della scheda, perché accanto al tasto il primo sito andava a capo da
+    solo; le versioni si leggono dalla testa del file (`Range`); il `•` porta il fuoco sul primo
+    `Installa` nuovo; `Dettagli` ha una zona di tocco di 44 px. La prova è
+    `tests/index-page.cjs`, che vuole la rete verso Google Fonts.
 - **Icona di DEFAULT per ogni userscript (istruzione dell'utente, 2026-07-26):
   sempre la stessa, `Roccobot.png` alla radice di questo repo.** Va messa nell'intestazione di
   ogni script, nuovo o esistente, senza chiedere:
@@ -71,16 +83,17 @@
     non-retroattività della regola universale oggi riguarda solo i **commenti**, che
     restano in italiano finché non si riscrive quella parte.
   - **Descrizione: massimo ~300 parole, limite morbido** (regola universale
-    dell'utente, 2026-07-29). Dopo la potatura la più lunga è quella di DIV, **132** parole,
-    le altre sono fra 47 e 140, quindi nessuna sfora. ⚠️ Il dettaglio tecnico va
+    dell'utente, 2026-07-29). Le descrizioni crescono a ogni versione, quindi il conto si fa
+    sui file quando serve e non si scrive qui: il numero scritto il 2026-07-29 era superato al
+    giro di verifica del 2026-11-13, quando nessuna sforava ancora. ⚠️ Il dettaglio tecnico va
     nel `README.md` di `userscripts/`, non nel metadato: la vecchia descrizione di DIV
     era di **743 parole** e ripeteva la storia versione per versione ('dalla 2.10',
     'dalla 2.12'...), cioè un changelog travestito da descrizione, mentre il README
     documenta già tutto in una sezione di 249 righe.
   - `@name` resta quello deciso dall'utente, in qualunque lingua.
   - **Anche la UI è in inglese** (decisione dell'utente, 2026-07-29): pulsanti,
-    tooltip, voci del menu contestuale, avvisi, `alert` e comandi del menu di
-    Tampermonkey. Vale per tutti e 7. Da qui in avanti uno script nuovo nasce con la
+    tooltip, voci del menu contestuale, avvisi, `alert` e comandi del menu del
+    gestore. Vale per tutti e 7. Da qui in avanti uno script nuovo nasce con la
     UI in inglese, come vuole `Roccobot.md`, sezione '🏗️ Sviluppo software'.
     - ⚠️ **I messaggi degli oggetti `Error` fanno parte della UI**, non sono
       diagnostica interna: in ENF il testo dell'errore finisce dentro l'`alert`
@@ -100,7 +113,7 @@
       la regola universale sulla lingua della documentazione): cambiano solo i nomi
       citati, non la prosa.
 - **Versione: bump SemVer a ogni commit che tocca lo script** (`patch` per i fix e le
-  correzioni di commenti, `minor` per le funzioni nuove). Senza bump Tampermonkey non
+  correzioni di commenti, `minor` per le funzioni nuove). Senza bump Violentmonkey non
   scarica l'aggiornamento, quindi il link di installazione sarebbe inutile.
 - **Link di installazione a fine lavoro / dopo OGNI go-live (regola rafforzata
   dall'utente, 2026-07-16).** Ogni volta che crei o **aggiorni** uno userscript,
@@ -373,7 +386,7 @@ pagina `options.html` di 'Image Max URL'.
   appartiene alla scheda in cui si è: registrandolo dopo la guardia comparirebbe solo mentre
   si guarda un'immagine, cioè quasi mai quando serve.
 - ⚠️ **Il pannello aspetta il DOM**, come l'avvio del visualizzatore. `@run-at document-idle`
-  vale per Tampermonkey, ma altri gestori possono partire prima: misurato in laboratorio,
+  vale per i gestori che lo rispettano, ma un gestore può partire prima: misurato in laboratorio,
   iniettando a `document-start` la pagina restava all'avviso 'script non installato', cioè il
   difetto peggiore, perché fa sembrare rotta l'installazione.
 - **Le opzioni sono una tabella sola** (`OPTS`), che è insieme il default, i limiti e ciò che
@@ -453,6 +466,11 @@ tutto il resto che la pulizia toglie.
   partono di lì. ⚠️ **Non si mette un try/catch al suo posto**: quello nasconderebbe
   l'errore lasciando il modulo a metà, mentre qui il lavoro va fatto, solo più tardi di un
   fotogramma.
+- **La prova è `tests/document-start.cjs`**: fa partire i cinque script che girano a
+  `document-start` con `document.documentElement` nullo (lo controlla, o la prova non
+  misurerebbe niente) e legge il lavoro di ciascuno a pagina caricata. Dal 2026-11-13 partono
+  dalla guardia anche LotRWiki (1.0.5), il modulo foto di NSFWA (1.2.5) e la pulizia di PH
+  (1.12.4), che senza restavano senza stile o a metà (giro `Vaglio`, Userscript-01, -02, -08).
 - **La controprova è il confronto fra le due corse**: a documento vuoto, prima lo `<style>`
   era 0 e il banner alto 67 pixel, dopo lo `<style>` è 1 e il banner è a 0.
 
@@ -469,7 +487,7 @@ in `ABP/RoccobotFilters.txt`. È una duplicazione **dichiarata**, non una diment
 ⚠️ Chi tocca uno dei due **aggiorni anche l'altro**, o divergeranno in silenzio: qui la fonte
 unica non è possibile, perché i due meccanismi non si leggono a vicenda. Il criterio con cui
 è stato scelto il selettore (l'URL invece delle classi, che in Qwant sono hashate; e il
-livello del contenitore misurato risalendo il DOM) vive nel `CLAUDE.md` del repo `Roccobot/ABP`,
+livello del contenitore misurato risalendo il DOM) vive nel `Rules.md` del repo `Roccobot/ABP`,
 per non scriverlo due volte.
 
 ⚠️⚠️ **E DALLA `2.18.0` I BERSAGLI SONO DUE PER OGNI VIA, PIÙ UN RAMO IN JS.** Il selettore
@@ -500,7 +518,7 @@ titolo, l'immagine e un tasto, e vive nei due posti di sempre: lo userscript e l
 
 - **L'appiglio sono i `data-testid` dei suoi pezzi**, che Qwant tiene stabili mentre le classi
   della card sono hashate: il criterio, i due selettori e la forma dichiarata dal componente
-  vivono nel `CLAUDE.md` del repo `Roccobot/ABP`, per non scriverli due volte.
+  vivono nel `Rules.md` del repo `Roccobot/ABP`, per non scriverli due volte.
 - **La terza via è `nascondiAnnuncioInserzionista()`, e MISURA invece di sapere**: sale dal
   titolo finché l'antenato contiene soltanto il testo dei pezzi marcati, e si ferma appena ne
   aggiunge dell'altro. È il freno dello smart banner detto con un conto invece che con un
@@ -687,6 +705,12 @@ nome del file. Copre `enf-cmnf.cc`, `enfhub.com` e `xhamster.com`.
     - ⚠️ **Trappola del banco**: il rimbalzo si simula lato **pagina**, non con un 302, perché
       una rotta di Playwright che risponde `302` non viene seguita e la prova finisce su un
       errore di rete, misurando il banco invece dello script.
+- ⚠️ **A pagina ferma lo script non rilegge la pagina** (dalla 1.6.7, giro `Vaglio`,
+  Userscript-13): le tre scansioni del testo serializzato (xhamster, enfhub, testo grezzo) leggono
+  una sola serializzazione, tenuta finché non cambiano l'indirizzo o il numero di `<video>`,
+  `<source>` e `<script>`, e l'intervallo di 1,5 s, a tasto in pagina, guarda solo l'indirizzo.
+  Prima ogni giro serializzava tutto il documento, circa 84 ms con la CPU rallentata di quattro
+  volte. La prova è `tests/enf-idle.cjs`, che conta le serializzazioni.
 - ⚠️ **Non tutto ciò che finisce in `.mp4` è il video**: la scansione del testo grezzo pesca le
   **anteprime animate** delle miniature (`...t.mp4`, sei secondi senza audio) e i **modelli** con
   segnaposto al posto della qualità (`_TPL_.h264.mp4`), che come file non esistono. Misurato
@@ -770,6 +794,10 @@ compare e la pagina non offre niente: si salvava a mano, una per una.
   video è nascosto, cioè sempre, su un post di foto. Il picker dei video si ancora
   **misurando** l'altezza della colonna, invece del vecchio `64px`, che con due tasti gli
   cadeva sopra.
+- ⚠️ **Il writer ha tre copie, in ENF, NSFWA e Fapopedia**, perché ogni script è un file solo:
+  dal 2026-11-13 sono lo stesso codice (prima gli altri due scrivevano la data `1980-00-00` e
+  copiavano i byte in un array unico), e `tests/zip-writer-copies.cjs` le tiene uguali. Chi
+  corregge una copia corregge le tre.
 - ⚠️ **`pulisci()` normalizza anche i caratteri vietati** (trattini lunghi, apici curvi,
   ellissi): il titolo dei post ne è pieno, e da lì finivano nel nome di **ogni** file salvato,
   video compresi. È l'applicazione della regola universale 'un carattere vietato ricevuto in
@@ -790,6 +818,11 @@ l'ha in mano**.
   al suo codice la `@version` a cui è allineata**: chi tocca il blocco 'ROTELLA NUDA' di
   `DIVRoccobot.user.js` aggiorna anche lei e quel numero. Non aggiornarla è peggio che non
   averla, perché una sonda che mente si crede.
+- **Dalla 3.2.6 lo script tratta l'evento solo orizzontale come la sonda** (scelta `Rotella-01`
+  dell'utente, 2026-11-13): un evento con `deltaY` a zero esce prima di `decideGesture`, quindi non
+  rinnova il gesto e non insegna 'dito'. Prima lo script lo faceva entrare nella macchina a stati,
+  e la sonda no: i due potevano leggere in modo diverso gli eventi dei 400-800 ms seguenti. Firme e
+  soglie non sono cambiate; la prova è il caso 3 di `tests/div.cjs`.
 - ⚠️ **La UI è in ITALIANO ma il NOME DEL FILE è in inglese**, per istruzione esplicita
   dell'utente (2026-07-31): 'UI in italiano, ma nomi file di default in inglese'. La UI in
   italiano è una **deroga dichiarata** a `Roccobot.md` § '🏗️ Sviluppo software' (progetti
