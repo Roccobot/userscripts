@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Decent Image Viewer
 // @namespace       https://roccobot.github.io/
-// @version         3.2.5
+// @version         3.2.6
 // @description     Decent image viewer for the browser's own image pages, for local files (file:///) and for SVG. Checkerboard background; one-line info panel with format, weight, pixel size and zoom; the image fits the view but never grows past its real size (1:1 with physical pixels), and a click toggles fit and 1:1. Zoom acts on the image only, never on the page: the bare wheel steps through round values and snaps at 100%, from 2% to 4000%; ctrl+wheel and pinch work too; dragging pans, with an overview navigator. Right-click opens its own menu (copy image, copy URL, image search, download, fit, 100/200/400%), and shift+right-click keeps the browser's. 'Image search' hands the image to a reverse image search engine, chosen in the options among Google Lens, Yandex, Bing and TinEye; on a local file, where no engine can reach the image, it copies the picture and opens the engine so it can be pasted. SVG stays vector and exports either as PNG at a chosen DPI or as an SVG stripped of metadata. Keys: A fill-view mode, I wheel direction, N navigator. The Options entry in the manager's menu opens a settings page: interface language (Italian, English or automatic), theme, gestures and export defaults, all kept across script updates.
 // @author          Rocco Casadei, a.k.a. Roccobot
 // @icon            https://roccobot.github.io/userscripts/Roccobot.png
@@ -1052,13 +1052,19 @@
       return whole;
     }
     // Che comando è questo gesto: 'scatti' (zoom a tappe tonde, dalla rotella), 'continuo'
-    // (zoom proporzionale al movimento, dal dito) o 'scorre' (lo prende il browser).
+    // (zoom proporzionale al movimento, dal dito), 'scorre' (lo prende il browser) o
+    // 'niente' (un evento solo orizzontale, che non è un comando di zoom).
     // ⚠️ La cache sull'identità dell'evento non è un'ottimizzazione: il ramo di
     // shift+rotella interroga questa funzione DUE volte per lo stesso evento, e senza cache
     // il secondo giro conterebbe l'evento un'altra volta nella macchina a stati.
     let evDecided = null, cmdCache = 'scorre';
     function gestureCommand(e) {
       if (WHEEL_MODE === 'never') return 'scorre';
+      // A horizontal-only event (deltaY zero: a tilting wheel, a thumb wheel, a sideways
+      // swipe) leaves before the state machine: it must not renew the gesture, nor teach
+      // 'finger' through touchSignature, which a zero deltaY satisfies (Rocco's choice
+      // Rotella-01, 2026-11-13). ScrollProbe.html does the same.
+      if (!e.deltaY) return 'niente';
       if (e === evDecided) return cmdCache;
       evDecided = e;
       const fromWheel = decideGesture(e);
@@ -1120,6 +1126,13 @@
     wrap.addEventListener('wheel', function (e) {
       if (!e.ctrlKey) {
         const cmd = gestureCommand(e);
+        // ⚠️ Un evento SENZA componente verticale non è un comando di zoom: viene dalla
+        // rotella inclinabile o dalla rotellina del pollice. Senza questa uscita valeva
+        // uno scatto AL ROVESCIO (verso = deltaY < 0 ? 1 : -1 dà -1 per deltaY 0, e
+        // un'ampiezza nulla vale un intero scatto in scattiGrezzi), quindi lo zoom tornava
+        // indietro di una tappa per ogni evento orizzontale, e il preventDefault impediva
+        // anche lo scorrimento laterale che l'utente stava chiedendo.
+        if (cmd === 'niente') return;
         // shift+gesto = scorrimento verticale: dove il gesto nudo zooma, resta il modo di
         // spostare con la tastiera un'immagine più grande della vista (l'altro modo, e il
         // principale, è il trascinamento)
@@ -1129,13 +1142,6 @@
           return;
         }
         if (cmd === 'scorre') return;      // se lo prende il browser, non si tocca nulla
-        // ⚠️ Un evento SENZA componente verticale non è un comando di zoom: viene dalla
-        // rotella inclinabile o dalla rotellina del pollice. Senza questa uscita valeva
-        // uno scatto AL ROVESCIO (verso = deltaY < 0 ? 1 : -1 dà -1 per deltaY 0, e
-        // un'ampiezza nulla vale un intero scatto in scattiGrezzi), quindi lo zoom tornava
-        // indietro di una tappa per ogni evento orizzontale, e il preventDefault impediva
-        // anche lo scorrimento laterale che l'utente stava chiedendo.
-        if (!e.deltaY) return;
         e.preventDefault();
         // Segno del verso, comune ai due modi: +1 quando "in su" deve ingrandire.
         const sign = upZoomsIn ? 1 : -1;
@@ -1479,8 +1485,15 @@
       }
     }
 
+    // The try catches the error thrown at once (no clipboard on an http:// page); a refusal
+    // that arrives later (page without focus, permission denied) comes as a rejected promise,
+    // and says so with the same notice.
     function copyUrl() {
-      try { navigator.clipboard.writeText(location.href).then(function () { toast(T('tUrlCopied')); }); }
+      try {
+        navigator.clipboard.writeText(location.href).then(
+          function () { toast(T('tUrlCopied')); },
+          function () { toast(T('tCopyFail')); });
+      }
       catch (e) { toast(T('tCopyFail')); }
     }
 
@@ -1501,14 +1514,14 @@
         setTimeout(function () { URL.revokeObjectURL(u); }, 30000);
         return;
       }
-      try {
-        GM_download({ url: location.href, name: fileName, saveAs: true, headers: { Referer: location.href } });
-      } catch (e) {
-        const a = makeEl('a');
-        a.setAttribute('href', location.href); a.setAttribute('download', fileName);
-        (document.body || document.documentElement).appendChild(a);
-        a.click(); if (a.parentNode) a.parentNode.removeChild(a);
-      }
+      // The direct click is the chosen way, not a fallback: the file is already in the page,
+      // and the click runs inside the user's tap on the menu entry, which is the only moment a
+      // browser accepts it on a phone (Rules.md, the file saved inside a tap). GM_download is not
+      // among the grants, and a branch calling it never ran.
+      const a = makeEl('a');
+      a.setAttribute('href', location.href); a.setAttribute('download', fileName);
+      (document.body || document.documentElement).appendChild(a);
+      a.click(); if (a.parentNode) a.parentNode.removeChild(a);
     }
 
     // ── Cerca simili ────────────────────────────────────────────────────
@@ -2292,6 +2305,8 @@
         '.dv-o-ctl option:hover,.dv-o-ctl option:focus-visible{background:var(--dv-bg)}' +
       '}}' +
       '.dv-o-ctl input[type=checkbox]{width:1.25rem;height:1.25rem;accent-color:var(--dv-acc);margin:0}' +
+      // the label around a lone checkbox: on a phone it is the 44 px area the finger hits
+      '.dv-o-hit{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}' +
       '.dv-o-foot{display:flex;align-items:center;gap:1rem;margin-top:1.4rem;flex-wrap:wrap}' +
       '.dv-o-reset{font:inherit;font-size:.9rem;color:inherit;background:var(--dv-card);cursor:pointer;' +
         'border:1px solid var(--dv-line);border-radius:9px;padding:.45rem .9rem}' +
@@ -2305,6 +2320,7 @@
         '.dv-o-ctl{min-height:44px}' +
         '.dv-o-ctl select,.dv-o-ctl input[type=number],.dv-o-reset{min-height:44px;box-sizing:border-box;font-size:1rem}' +
         '.dv-o-ctl input[type=checkbox]{width:1.6rem;height:1.6rem}' +
+        '.dv-o-hit{min-width:44px;min-height:44px}' +
         '.dv-o-guard{display:inline-flex;align-items:center;min-height:44px}' +
       '}' +
       // ...and on a narrow screen the control goes under its text, at full width, so a long
@@ -2333,6 +2349,9 @@
     // quindi lo script c'è, e l'avviso lascia il posto al pannello vero
     while (root.firstChild) root.removeChild(root.firstChild);
     try { document.title = T('oTitle') + ' - ' + T('oOptions'); } catch (e) {}
+    // The shell declares lang="it"; the panel is in LANG, and a screen reader reads it with the
+    // pronunciation the page declares.
+    document.documentElement.lang = LANG;
 
     function node(tag, cls, text) {
       const e = document.createElement(tag);
@@ -2473,7 +2492,13 @@
           }
         }
         field.id = 'opt-' + r.k;
-        ctl.appendChild(field);
+        if (o.t === 'bool') {
+          // A checkbox is 26 px even on a phone: a label around it gives the finger 44 px
+          // (Rules.md, the phone), and a click on a label toggles its checkbox.
+          const hit = node('label', 'dv-o-hit');
+          hit.appendChild(field);
+          ctl.appendChild(hit);
+        } else ctl.appendChild(field);
         row.appendChild(ctl);
         box.appendChild(row);
       });
