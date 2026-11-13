@@ -122,6 +122,12 @@
   <https://roccobot.github.io/userscripts/NOME.user.js>). Vale per **qualsiasi**
   aggiornamento, anche minore/patch: dopo ogni pubblicazione l'URL va ripetuto,
   senza eccezioni.
+- **Le prove di `tests/` girano da sole su GitHub** (`.github/workflows/tests.yml`, dal
+  2026-11-13, card `Lima` del giro `Vaglio`): a ogni push su `main` e a ogni PR che tocca uno
+  script, una pagina o una prova, tutte le prove in Chromium con Playwright 1.63.0, la versione dei
+  container delle sessioni. Il repo è pubblico, quindi i minuti Linux sono gratuiti (circa due a
+  corsa). In una sessione si lanciano lo stesso prima del push, dalla radice: `node tests/<file>`.
+  Una prova nuova entra in `tests/` e il flusso la prende da sé.
 
 ## 📱 Sul telefono: `pointer: coarse`, pillole a sinistra, bersagli da 44 px
 

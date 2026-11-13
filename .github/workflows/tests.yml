@@ -1,0 +1,38 @@
+# The userscripts' test bench (tests/*.cjs) on every push to main and every pull request that
+# touches a script, a page or a test: the real scripts in Chromium through Playwright, with the
+# sites they work on served at their real addresses by the test itself (no network). The repo is
+# public, so the Linux minutes are free.
+# Author: Rocco Casadei, a.k.a. Roccobot
+name: tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['*.user.js', '*.html', 'tests/**', '.github/workflows/tests.yml']
+  pull_request:
+    paths: ['*.user.js', '*.html', 'tests/**', '.github/workflows/tests.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # The same Playwright as the sessions' containers, where the bench was written
+      - run: npm install --no-save playwright@1.63.0
+      - run: npx playwright install --with-deps chromium
+      # Every test runs, and the job fails if any of them fails
+      - name: Run tests/*.cjs
+        run: |
+          status=0
+          for t in tests/*.cjs; do
+            echo "::group::$t"
+            node "$t" || { echo "::error file=$t::$t failed"; status=1; }
+            echo "::endgroup::"
+          done
+          exit $status
