@@ -14,8 +14,8 @@ const script = fs.readFileSync(process.argv[2] || path.join(__dirname, '..', 'NS
 const SHIM = 'window.GM_registerMenuCommand = function () {}; window.GM_xmlhttpRequest = function () {};';
 const FOTO = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#888"/></svg>').toString('base64');
 const ESCA = '<svg id="esca" width="800" height="600" style="position:absolute;left:0;top:0;z-index:9999"></svg>';
-// The third case is a page whose own style beats the script's rule on the lens: in Rocco's
-// Vivaldi the lens stayed in sight with 1.2.6 (2026-11-20), whose only weapon was that rule.
+// The third case is a page whose own style beats the script's rule on the lens: up to 1.2.6
+// that rule was the only weapon against the lens, and a stronger one brings it back.
 const VINCE = '<style>html body div.magnify > div.magnify-lens{display:block!important}</style>';
 const pagina = (esca, vince) => '<!doctype html><html class="magnifying"><head><title>Photo</title>' + (vince ? VINCE : '') + '</head><body style="margin:0">' +
   '<div id="page"><div class="text-center photoContainer"><div id="fullSizeToggle" style="position:relative">' +

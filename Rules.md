@@ -256,12 +256,15 @@ perché Chromium senza finestra scarica comunque.
   che diceva `HTML pe=none`. Dalla 1.2.6 si nasconde la sola lente (scelta `Foto-02` dell'utente), e le difese
   agiscono solo su un'esca vera, mai su `#zoom` o su chi la contiene; la prova è
   `tests/nsfwa-photo.cjs`, che sulla 1.2.5 trova `<html>` e il contenitore coi clic spenti.
-  - ⚠️ **Dalla 1.2.7 la lente si TOGLIE dalla pagina, non si nasconde**: con la sola regola
-    `.magnify-lens{display:none!important}` la lente restava visibile nel Vivaldi dell'utente,
-    mentre in Chromium la regola funziona; la 1.2.5 lo copriva spegnendo i clic della lente. Un
-    nodo fuori dalla pagina non si può mostrare, quale che sia lo stile che vince; il plugin della
+  - **Dalla 1.2.7 la lente si TOGLIE dalla pagina, non si nasconde**: un nodo fuori dalla pagina
+    non si può mostrare, quale che sia lo stile che vince, mentre la sola regola
+    `.magnify-lens{display:none!important}` cede a una regola più forte del sito. Il plugin della
     lente tiene il suo riferimento e lo anima staccato, senza errori (misurato sulla pagina vera).
     La prova ha un caso con una regola della pagina che rimostra la lente, che sulla 1.2.6 fallisce.
+    - ⚠️ **La 1.2.7 è nata da una segnalazione sbagliata**: la lente visibile con la 1.2.6 era lo
+      script disattivato in Violentmonkey dopo l'aggiornamento (l'utente, lo stesso giorno). Il
+      cambio resta perché è più robusto e provato; prima di correggere un difetto riferito dopo un
+      aggiornamento, si chiede se lo script è acceso.
   - ⚠️ **Il container non vede quello che vede Vivaldi**: l'indirizzo che il menu del tasto destro
     apre lo sceglie il browser, e Chromium automatico non lo espone. La misura decisiva l'ha data
     l'utente con lo script spento.
