@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         NSFWA Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.2.6
-// @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the magnifying lens is hidden, and if a decoy (an empty SVG) is laid over the photo it lets the clicks through, so open-image and save-image reach the actual image file; the photo itself and the page around it are left as the site builds them. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
+// @version      1.2.7
+// @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the magnifying lens is removed, and if a decoy (an empty SVG) is laid over the photo it lets the clicks through, so open-image and save-image reach the actual image file; the photo itself and the page around it are left as the site builds them. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://nsfwalbum.com/*
@@ -60,10 +60,18 @@
   // never touch #zoom or an element that contains it. NB: /missed.php serves a placeholder
   // JPEG when the image is really missing: nothing to recover there, and not a decoy.
   function moduloFoto() {
+    // The lens is removed from the page as soon as it appears; the rule only spares the flash
+    // before the observer runs. With the rule alone (1.2.6) the lens stayed in sight in Rocco's
+    // Vivaldi (2026-11-20): something there beats it, and a node that is not in the page cannot
+    // be shown. The magnify plugin keeps its reference to the lens and animates it detached.
     if (NASCONDI_LENTE) {
       const style = document.createElement('style');
       style.textContent = '.magnify-lens{display:none!important}';
       (document.head || document.documentElement).appendChild(style);
+    }
+    function togliLente() {
+      if (!NASCONDI_LENTE) return;
+      for (const l of document.querySelectorAll('.magnify-lens')) l.remove();
     }
 
     function img() { return document.getElementById('zoom'); }
@@ -81,6 +89,7 @@
 
     // The classic decoy: an empty <svg> laid over the photo. Checked on load and on mutations.
     function neutralizza() {
+      togliLente();
       const z = img();
       if (!z) return;
       const r = z.getBoundingClientRect();

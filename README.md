@@ -193,8 +193,9 @@ del tutto disattivata.
 Tutto-in-uno per `nsfwalbum.com` (unisce e sostituisce *NSFWAlbum Enhancer* +
 *NSFWGallery*):
 
-- **Pagina foto (`/photo/<id>`):** nasconde la lente d'ingrandimento
-  (`.magnify-lens`), così il tasto destro cade sulla foto vera, `<img id="zoom">`,
+- **Pagina foto (`/photo/<id>`):** toglie dalla pagina la lente d'ingrandimento
+  (`.magnify-lens`; dalla 1.2.7, perché nascosta con una regola CSS in Vivaldi
+  restava visibile), così il tasto destro cade sulla foto vera, `<img id="zoom">`,
   e 'apri immagine'/'salva immagine' agiscono sul **file reale** (imx.to o
   pixhost). Se il sito sovrappone di nuovo un'esca, cioè un `<svg>` **vuoto**
   grande quanto la foto che ruba il tasto destro (→ `data:image/svg+xml...`), lo

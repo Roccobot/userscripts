@@ -14,23 +14,27 @@ const script = fs.readFileSync(process.argv[2] || path.join(__dirname, '..', 'NS
 const SHIM = 'window.GM_registerMenuCommand = function () {}; window.GM_xmlhttpRequest = function () {};';
 const FOTO = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#888"/></svg>').toString('base64');
 const ESCA = '<svg id="esca" width="800" height="600" style="position:absolute;left:0;top:0;z-index:9999"></svg>';
-const pagina = (esca) => '<!doctype html><html class="magnifying"><head><title>Photo</title></head><body style="margin:0">' +
+// The third case is a page whose own style beats the script's rule on the lens: in Rocco's
+// Vivaldi the lens stayed in sight with 1.2.6 (2026-11-20), whose only weapon was that rule.
+const VINCE = '<style>html body div.magnify > div.magnify-lens{display:block!important}</style>';
+const pagina = (esca, vince) => '<!doctype html><html class="magnifying"><head><title>Photo</title>' + (vince ? VINCE : '') + '</head><body style="margin:0">' +
   '<div id="page"><div class="text-center photoContainer"><div id="fullSizeToggle" style="position:relative">' +
   '<div class="magnify" style="position:relative;display:inline-block">' +
   '<img id="zoom" src="' + FOTO + '" width="800" height="600" alt="photo">' +
   '<div class="magnify-lens" style="position:absolute;left:300px;top:200px;width:200px;height:200px;z-index:99"></div>' +
   '</div>' + (esca ? ESCA : '') + '</div></div></div></body></html>';
 const CASI = [
-  ['senza esca', false],
-  ['con un SVG vuoto sopra la foto', true],
+  ['senza esca', false, false],
+  ['con un SVG vuoto sopra la foto', true, false],
+  ['con una regola della pagina che rimostra la lente', false, true],
 ];
 (async () => {
   const b = await chromium.launch();
   let tutto = true;
-  for (const [nome, esca] of CASI) {
+  for (const [nome, esca, vince] of CASI) {
     const ctx = await b.newContext({ viewport: { width: 1000, height: 800 } });
     await ctx.route(/^https?:\/\//, r => r.request().resourceType() === 'document'
-      ? r.fulfill({ contentType: 'text/html', body: pagina(esca) }) : r.abort());
+      ? r.fulfill({ contentType: 'text/html', body: pagina(esca, vince) }) : r.abort());
     await ctx.addInitScript(SHIM);
     await ctx.addInitScript(script);
     const p = await ctx.newPage();
@@ -50,12 +54,12 @@ const CASI = [
         clicContenitore: pe(document.querySelector('.magnify')),
         clicFoto: pe(z),
         stileFoto: z.getAttribute('style'),
-        lente: getComputedStyle(document.querySelector('.magnify-lens')).display,
+        lente: [...document.querySelectorAll('.magnify-lens')].map((l) => getComputedStyle(l).display).join() || 'tolta',
         esca: document.getElementById('esca') ? pe(document.getElementById('esca')) : '-'
       };
     });
     const ok = r.inCima && r.clicHtml === 'auto' && r.clicContenitore === 'auto' && r.clicFoto === 'auto' &&
-      r.stileFoto === null && r.lente === 'none' && (!esca || r.esca === 'none');
+      r.stileFoto === null && r.lente === 'tolta' && (!esca || r.esca === 'none');
     console.log((ok ? 'OK  ' : 'FALLITA ') + nome + ': ' + JSON.stringify(r));
     tutto = tutto && ok;
     await ctx.close();
