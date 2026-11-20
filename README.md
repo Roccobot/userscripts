@@ -193,17 +193,18 @@ del tutto disattivata.
 Tutto-in-uno per `nsfwalbum.com` (unisce e sostituisce *NSFWAlbum Enhancer* +
 *NSFWGallery*):
 
-- **Pagina foto (`/photo/<id>`):** rende l'immagine vera cliccabile in modo
-  naturale: 'apri immagine'/'salva immagine' agiscono sul **file reale su
-  imx.to**, non sull'esca. La foto vera è in `<img id="zoom">` ma spesso è
-  **nascosta** (`class="hide"`) mentre uno script di protezione (`hl.js`)
-  sovrappone un `<svg>` **vuoto** grande quanto la foto che ruba il tasto destro
-  (→ `data:image/svg+xml...`). Lo script forza `#zoom` **visibile, cliccabile e in
-  cima** e **neutralizza** (`pointer-events:none`) le esche SVG/lente
-  sovrapposte, così il menu contestuale cade sull'immagine reale. Nasconde anche
-  la lente d'ingrandimento (`.magnify-lens`). *(Quando l'immagine manca davvero
-  il sito serve un JPEG placeholder da `/missed.php`: lì non c'è nulla da
-  recuperare, non è un'esca.)*
+- **Pagina foto (`/photo/<id>`):** nasconde la lente d'ingrandimento
+  (`.magnify-lens`), così il tasto destro cade sulla foto vera, `<img id="zoom">`,
+  e 'apri immagine'/'salva immagine' agiscono sul **file reale** (imx.to o
+  pixhost). Se il sito sovrappone di nuovo un'esca, cioè un `<svg>` **vuoto**
+  grande quanto la foto che ruba il tasto destro (→ `data:image/svg+xml...`), lo
+  script la rende trasparente ai clic (`pointer-events:none`). Dalla 1.2.6 non
+  tocca altro: la foto e gli elementi che la contengono restano come li costruisce
+  il sito. Fino alla 1.2.5 lo script forzava lo stile della foto e spegneva i clic
+  anche su `<html>` e sul contenitore della lente, e proprio questo faceva aprire
+  a Vivaldi l'SVG vuoto al posto della foto. *(Quando l'immagine manca davvero il
+  sito serve un JPEG placeholder da `/missed.php`: lì non c'è nulla da recuperare,
+  non è un'esca.)*
 - **Pagina album (`/album/<id>`):** pulsante flottante **'⬇️ Download set (ZIP)'**
   che scarica **tutte** le immagini del set a **piena risoluzione** in un unico
   **ZIP**, nominato **`[studio] - [modella] - [titolo].zip`** (ricavato dalla

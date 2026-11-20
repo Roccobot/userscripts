@@ -31,15 +31,18 @@ const CASI = [
     buono: (r) => r.stile && r.colonna === 0
   },
   {
+    // From 1.2.6 the photo is left as the site builds it (tests/nsfwa-photo.cjs): only the lens
+    // is hidden, and an empty <svg> decoy over the photo lets the clicks through.
     nome: 'NSFWA, pagina foto', file: 'NSFWARoccobot.user.js', url: 'https://nsfwalbum.com/photo/1',
-    pagina: '<!doctype html><html><head><title>Photo</title><style>.hide{display:none}</style></head><body>' +
-      '<img id="zoom" class="hide" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="200" height="200">' +
+    pagina: '<!doctype html><html><head><title>Photo</title></head><body>' +
+      '<img id="zoom" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="200" height="200">' +
+      '<svg id="esca" width="200" height="200" style="position:absolute;left:0;top:0"></svg>' +
       '<div class="magnify-lens" style="width:50px;height:50px">lens</div></body></html>',
     controlla: () => ({
-      zoom: getComputedStyle(document.getElementById('zoom')).display,
-      lente: getComputedStyle(document.querySelector('.magnify-lens')).display
+      lente: getComputedStyle(document.querySelector('.magnify-lens')).display,
+      esca: getComputedStyle(document.getElementById('esca')).pointerEvents
     }),
-    buono: (r) => r.zoom === 'block' && r.lente === 'none'
+    buono: (r) => r.lente === 'none' && r.esca === 'none'
   },
   {
     nome: 'PH', file: 'PHRoccobot.user.js', url: 'https://www.pornhub.com/view_video.php?viewkey=abc',

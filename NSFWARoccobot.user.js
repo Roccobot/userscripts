@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         NSFWA Roccobot
 // @namespace    https://roccobot.github.io/
-// @version      1.2.5
-// @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the real image becomes clickable again, so open-image and save-image reach the actual image file; #zoom is forced visible and on top, and the SVG and lens decoys over it are neutralized, hidden #zoom included. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
+// @version      1.2.6
+// @description  All-in-one for nsfwalbum.com. Photo pages (/photo/): the magnifying lens is hidden, and if a decoy (an empty SVG) is laid over the photo it lets the clicks through, so open-image and save-image reach the actual image file; the photo itself and the page around it are left as the site builds them. Album pages (/album/): a button downloads the whole set at full resolution as one ZIP, named '[studio] - [model] - [title].zip'. Replaces NSFWAlbum Enhancer and NSFWGallery.
 // @author       Rocco Casadei, a.k.a. Roccobot
 // @icon         https://roccobot.github.io/userscripts/Roccobot.png
 // @match        https://nsfwalbum.com/*
@@ -48,65 +48,55 @@
   // ═══════════════════════════════════════════════════════════════════════
   //  MODULO FOTO (/photo/<id>): apri/salva immagine → file vero
   // ═══════════════════════════════════════════════════════════════════════
-  // La foto vera è in <img id="zoom"> (src = file reale su imx.to via backend.php),
-  // ma spesso è NASCOSTA (class="hide") mentre il plugin magnify mostra l'immagine
-  // e uno script di protezione (hl.js) sovrappone un <svg> VUOTO grande quanto la
-  // foto che ruba il tasto destro: "apri immagine" restituisce quell'SVG
-  // serializzato (data:image/svg+xml...). Fix: forziamo #zoom VISIBILE, cliccabile e
-  // in cima, e neutralizziamo (pointer-events:none) le esche sovrapposte → il menu
-  // contestuale cade sull'immagine vera. NB: /missed.php restituisce un JPEG
-  // placeholder quando l'immagine manca davvero (in quel caso non c'è nulla da
-  // recuperare: non è un'esca).
+  // The real photo is <img id="zoom">, whose src the page sets from backend.php (imx.to or
+  // pixhost). An older protection script laid an EMPTY <svg> as large as the photo over it, and
+  // 'open image' returned that SVG serialized (data:image/svg+xml...). The site no longer does
+  // it (measured 2026-11-20: no <svg> at all on the photo page), and up to 1.2.5 the module's
+  // own defences caused the same symptom: it forced #zoom's style and turned off the clicks of
+  // every element with 'magnif' in its class, the .magnify wrapper and <html class="magnifying">
+  // included, that is the photo's own ancestors. With the module off, the photo opened fine.
+  // So, from 1.2.6, the page is left as the site builds it, the lens aside: the defences wake
+  // only for a real decoy (an empty <svg>, or anything over the photo at the right press) and
+  // never touch #zoom or an element that contains it. NB: /missed.php serves a placeholder
+  // JPEG when the image is really missing: nothing to recover there, and not a decoy.
   function moduloFoto() {
-    const css =
-      // #zoom: reso visibile, interagibile e in cima (così il tasto destro lo colpisce)
-      '#zoom{display:block!important;visibility:visible!important;opacity:1!important;' +
-        'pointer-events:auto!important;position:relative!important;z-index:2147483000!important;' +
-        'max-width:100%!important;height:auto!important;margin-left:auto!important;margin-right:auto!important}' +
-      (NASCONDI_LENTE ? '.magnify-lens{display:none!important}' : '');
-    const style = document.createElement('style');
-    style.textContent = css;
-    (document.head || document.documentElement).appendChild(style);
+    if (NASCONDI_LENTE) {
+      const style = document.createElement('style');
+      style.textContent = '.magnify-lens{display:none!important}';
+      (document.head || document.documentElement).appendChild(style);
+    }
 
     function img() { return document.getElementById('zoom'); }
+    // Turns the clicks off on a decoy: never on the photo, nor on an element that contains it.
     function spegni(el) {
-      if (!el || el.dataset.rbNsfw || el === img()) return;
+      const z = img();
+      if (!el || !z || el.dataset.rbNsfw || el === z || el.contains(z)) return;
       el.style.setProperty('pointer-events', 'none', 'important');
       el.dataset.rbNsfw = '1';
     }
+    function sopra(el, r) {
+      const s = el.getBoundingClientRect();
+      return !(s.right <= r.left || s.left >= r.right || s.bottom <= r.top || s.top >= r.bottom);
+    }
 
-    // Neutralizzazione LARGA: overlay grandi quanto l'immagine o SVG vuoti (l'esca
-    // classica, incluso l'SVG 2333×3500 vuoto). Su load/mutation/mouseover.
+    // The classic decoy: an empty <svg> laid over the photo. Checked on load and on mutations.
     function neutralizza() {
       const z = img();
       if (!z) return;
-      z.style.setProperty('pointer-events', 'auto', 'important');
       const r = z.getBoundingClientRect();
-      for (const el of document.querySelectorAll('svg,[class*="magnif"]')) {
-        if (el.dataset.rbNsfw || el === z) continue;
-        const s = el.getBoundingClientRect();
-        const svgVuoto = el.tagName.toLowerCase() === 'svg' && el.childElementCount === 0;
-        if (!r.width || !r.height) { if (svgVuoto) spegni(el); continue; }
-        const overlappa = !(s.right <= r.left || s.left >= r.right || s.bottom <= r.top || s.top >= r.bottom);
-        const grande = s.width >= r.width * 0.6 && s.height >= r.height * 0.6;
-        if (svgVuoto || (overlappa && grande)) spegni(el);
+      for (const el of document.querySelectorAll('svg')) {
+        if (el.childElementCount === 0 && (!r.width || sopra(el, r))) spegni(el);
       }
     }
 
-    // Neutralizzazione MIRATA al tasto destro: qualunque cosa sopra #zoom nel
-    // punto cliccato viene resa trasparente ai clic (a prescindere da forma/dim).
+    // At the right press: whatever lies over #zoom at that point lets the clicks through.
     function scopriSotto(x, y) {
       const z = img();
       if (!z) return;
-      z.style.setProperty('pointer-events', 'auto', 'important');
       const stack = document.elementsFromPoint(x, y);
       const idx = stack.indexOf(z);
-      if (idx < 0) { neutralizza(); return; } // #zoom non nello stack: ripiego largo
-      for (let i = 0; i < idx; i++) {
-        const el = stack[i];
-        if (el === z || el === document.documentElement || el === document.body) continue;
-        spegni(el);
-      }
+      if (idx < 0) { neutralizza(); return; }
+      for (let i = 0; i < idx; i++) spegni(stack[i]);
     }
     // On a phone the menu comes from a long press, and the browser picks its target when the
     // finger lands: the decoys are cleared at the touch's pointerdown, not at the contextmenu.
@@ -118,9 +108,6 @@
       neutralizza();
       try { new MutationObserver(neutralizza).observe(document.documentElement, { subtree: true, childList: true }); } catch (e) {}
       window.addEventListener('load', neutralizza);
-      window.addEventListener('resize', neutralizza);
-      document.addEventListener('scroll', neutralizza, true);
-      document.addEventListener('mouseover', neutralizza, true);
       document.addEventListener('pointerdown', suTastoDestro, true);
       document.addEventListener('mousedown', suTastoDestro, true);
       document.addEventListener('contextmenu', suTastoDestro, true);

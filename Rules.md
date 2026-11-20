@@ -247,6 +247,18 @@ perché Chromium senza finestra scarica comunque.
   `pienaRisoluzione` e in `@connect`; la prova è `tests/nsfwa-album.cjs`, vista fallire sulla 1.2.2.
 - **NSFWA: sul telefono le esche si tolgono al `pointerdown` del dito**, perché il browser sceglie
   il bersaglio della pressione lunga quando il dito si appoggia, prima del `contextmenu`.
+- ⚠️⚠️ **NSFWA: sulla pagina foto lo script non tocca mai la foto né i suoi contenitori** (1.2.6,
+  segnalazione dell'utente del 2026-11-20: `Apri immagine in una nuova scheda` apriva un SVG vuoto
+  grande quanto la foto, mentre con lo script spento si apriva la foto). Il sito non mette più
+  l'esca, e il difetto lo faceva lo script: spegneva i clic su ogni elemento con `magnif` nella
+  classe, quindi anche su `<html class="magnifying">` e sul contenitore `.magnify`, e Vivaldi in
+  quel caso apre l'SVG. Lo ha mostrato una riga lanciata dall'utente nella console del suo browser,
+  che diceva `HTML pe=none`. Dalla 1.2.6 si nasconde la sola lente (scelta `Foto-02` dell'utente), e le difese
+  agiscono solo su un'esca vera, mai su `#zoom` o su chi la contiene; la prova è
+  `tests/nsfwa-photo.cjs`, che sulla 1.2.5 trova `<html>` e il contenitore coi clic spenti.
+  - ⚠️ **Il container non vede quello che vede Vivaldi**: l'indirizzo che il menu del tasto destro
+    apre lo sceglie il browser, e Chromium automatico non lo espone. La misura decisiva l'ha data
+    l'utente con lo script spento.
 - ⚠️ **Il banco con Playwright inganna con le schermate a pagina intera**: `fullPage: true`
   ridimensiona la finestra e perde l'emulazione del tocco, quindi la schermata mostra la
   disposizione del desktop mentre le misure dicono quella del telefono. Si fotografa la finestra
