@@ -480,6 +480,13 @@ peso**, e soprattutto un comportamento di visualizzazione controllato:
     con la dimensione nominale: un SVG 640×360 si copia a 640×360. Si cambia con la
     costante `DPI_COPIA`.
   - sugli SVG **Scarica** salva il file originale intatto.
+  - **Scarica sulle pagine che vietano gli scaricamenti (dalla 3.2.7)**: i file di
+    `raw.githubusercontent.com`, e ogni pagina servita con `Content-Security-Policy: sandbox`
+    senza `allow-downloads`, rifiutano lo scaricamento avviato dalla pagina, e il clic
+    diventava un ricaricamento. Lì lo script passa il file a Violentmonkey con
+    `GM_download`, che lo salva con l'API di download del browser se nelle impostazioni di
+    Violentmonkey è attiva **Use browser download API**; con l'opzione spenta il file non
+    arriva, e nessun errore lo segnala.
   - **Ricerca immagine (dalla 3.1.0)** consegna l'immagine a un motore di ricerca per
     immagini, scelto nelle opzioni fra **Google Lens** (predefinito), **Yandex**, **Bing**
     e **TinEye**. ⚠️ La ricerca inversa la fa il **motore**, che si scarica l'immagine da

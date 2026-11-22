@@ -4,8 +4,13 @@
 // Author: Rocco Casadei, a.k.a. Roccobot
 // The real userscript, injected once the page has loaded (Rules.md: at document-start there is
 // no <head>, and GM_addStyle fails), with the GM_* functions stubbed and an archive in memory.
-// 1. 'Download' clicks an <a download> inside the user's click, and never goes to GM_download,
-//    which is not among the grants: here a GM_download spy exists, as if a manager offered it.
+// 1. 'Download' clicks an <a download> inside the user's click, and does not go to GM_download,
+//    on an ordinary page.
+// 1b. On a page served like raw.githubusercontent.com, with `Content-Security-Policy: sandbox`
+//    and no `allow-downloads` (opaque origin), 'Download' goes to GM_download with the page's
+//    address and the file name, and clicks no <a download>: the browser turns that click into a
+//    reload (card Sabbiera). Without GM_download it says 'Download failed'.
+// 1c. A local file, whose origin is opaque too, keeps the direct click.
 // 2. 'Copy image URL' says 'Copy failed' when the clipboard refuses later, with a rejected
 //    promise.
 // 3. A horizontal-only wheel event does not count in the gesture (choice Rotella-01): a vertical
@@ -33,7 +38,7 @@ window.GM_openInTab = function () {};
 window.GM_xmlhttpRequest = function () {};
 window.GM_info = { script: { version: 'prova' } };
 window.__gmDownload = 0;
-window.GM_download = function () { window.__gmDownload++; };
+window.GM_download = function (o) { window.__gmDownload++; window.__gmArgs = { url: o && o.url, name: o && o.name }; };
 window.__clic = [];
 HTMLAnchorElement.prototype.click = function () {
   if (this.hasAttribute('download')) window.__clic.push({ nome: this.getAttribute('download'), tocco: !!(window.event && window.event.isTrusted) });
@@ -47,11 +52,17 @@ async function immagine(b) {
   return png;
 }
 
-async function paginaImmagine(b, png) {
+// `sandbox`: the page is served like raw.githubusercontent.com, with its CSP header plus
+// `allow-scripts`. GitHub's header disables the page's own scripts, and this bench injects the
+// script into the page; Violentmonkey runs it in an isolated world, which the sandbox leaves
+// alone. `allow-scripts` keeps what matters here: opaque origin, and no downloads.
+async function paginaImmagine(b, png, sandbox) {
   const ctx = await b.newContext({ viewport: { width: 1000, height: 800 }, locale: 'en-US' });
-  await ctx.route('https://example.com/**', (r) => r.fulfill({ contentType: 'image/png', body: png }));
+  const headers = sandbox ? { 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox allow-scripts" } : {};
+  const sito = sandbox ? 'https://raw.githubusercontent.com' : 'https://example.com';
+  await ctx.route(sito + '/**', (r) => r.fulfill({ contentType: 'image/png', body: png, headers }));
   const p = await ctx.newPage();
-  await p.goto('https://example.com/prova.png', { waitUntil: 'load' });
+  await p.goto(sito + '/prova.png', { waitUntil: 'load' });
   await p.evaluate(SHIM);
   await p.evaluate(script);
   await p.waitForSelector('#dv-wrap');
@@ -79,6 +90,40 @@ const larghezza = (p) => p.evaluate(() => Math.round(document.querySelector('#dv
   const scarica = await p.evaluate(() => ({ clic: window.__clic, gmDownload: window.__gmDownload }));
   esiti.push([scarica.gmDownload === 0 && scarica.clic.length === 1 && scarica.clic[0].tocco,
     "'Download' col clic diretto dentro il tocco, senza GM_download: " + JSON.stringify(scarica)]);
+
+  // 1b. Download on a sandboxed page, with and without GM_download
+  {
+    const s = await paginaImmagine(b, png, true);
+    const origine = await s.p.evaluate(() => self.origin);
+    await voce(s.p, 'Download');
+    const r = await s.p.evaluate(() => ({ clic: window.__clic, gmDownload: window.__gmDownload, args: window.__gmArgs }));
+    esiti.push([origine === 'null' && r.clic.length === 0 && r.gmDownload === 1 &&
+      r.args.url === 'https://raw.githubusercontent.com/prova.png' && r.args.name === 'prova.png',
+      "pagina in sandbox (origine '" + origine + "'): GM_download con indirizzo e nome, nessun clic: " + JSON.stringify(r)]);
+    await s.p.evaluate(() => { delete window.GM_download; });
+    await voce(s.p, 'Download');
+    const senza = await s.p.evaluate(() => ({ clic: window.__clic.length, avviso: (document.getElementById('dv-toast') || {}).textContent || '' }));
+    esiti.push([senza.clic === 0 && senza.avviso === 'Download failed',
+      "pagina in sandbox senza GM_download: avviso e nessun clic: " + JSON.stringify(senza)]);
+    await s.ctx.close();
+  }
+
+  // 1c. A local file has an opaque origin too, and keeps the direct click
+  {
+    const file = path.join(require('os').tmpdir(), 'div-prova-locale.png');
+    fs.writeFileSync(file, png);
+    const lctx = await b.newContext({ viewport: { width: 1000, height: 800 }, locale: 'en-US' });
+    const lp = await lctx.newPage();
+    await lp.goto('file://' + file, { waitUntil: 'load' });
+    await lp.evaluate(SHIM);
+    await lp.evaluate(script);
+    await lp.waitForSelector('#dv-wrap');
+    await voce(lp, 'Download');
+    const r = await lp.evaluate(() => ({ origine: self.origin, clic: window.__clic.length, gmDownload: window.__gmDownload }));
+    esiti.push([r.clic === 1 && r.gmDownload === 0, 'file locale: clic diretto, senza GM_download: ' + JSON.stringify(r)]);
+    await lctx.close();
+    fs.unlinkSync(file);
+  }
 
   // 2. Clipboard refusing later
   await p.evaluate(() => { navigator.clipboard.writeText = function () { return Promise.reject(new DOMException('no', 'NotAllowedError')); }; });

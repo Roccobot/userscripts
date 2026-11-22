@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Decent Image Viewer
 // @namespace       https://roccobot.github.io/
-// @version         3.2.6
+// @version         3.2.7
 // @description     Decent image viewer for the browser's own image pages, for local files (file:///) and for SVG. Checkerboard background; one-line info panel with format, weight, pixel size and zoom; the image fits the view but never grows past its real size (1:1 with physical pixels), and a click toggles fit and 1:1. Zoom acts on the image only, never on the page: the bare wheel steps through round values and snaps at 100%, from 2% to 4000%; ctrl+wheel and pinch work too; dragging pans, with an overview navigator. Right-click opens its own menu (copy image, copy URL, image search, download, fit, 100/200/400%), and shift+right-click keeps the browser's. 'Image search' hands the image to a reverse image search engine, chosen in the options among Google Lens, Yandex, Bing and TinEye; on a local file, where no engine can reach the image, it copies the picture and opens the engine so it can be pasted. SVG stays vector and exports either as PNG at a chosen DPI or as an SVG stripped of metadata. Keys: A fill-view mode, I wheel direction, N navigator. The Options entry in the manager's menu opens a settings page: interface language (Italian, English or automatic), theme, gestures and export defaults, all kept across script updates.
 // @author          Rocco Casadei, a.k.a. Roccobot
 // @icon            https://roccobot.github.io/userscripts/Roccobot.png
@@ -16,6 +16,7 @@
 // @grant           GM_setValue
 // @grant           GM_registerMenuCommand
 // @grant           GM_openInTab
+// @grant           GM_download
 // @updateURL       https://roccobot.github.io/userscripts/DIVRoccobot.user.js
 // @downloadURL     https://roccobot.github.io/userscripts/DIVRoccobot.user.js
 // ==/UserScript==
@@ -122,6 +123,7 @@
       tUrlCopied: 'URL copied',
       tCopyFail: 'Copy failed',
       tCopyFailWhy: 'Copy failed: {1}',
+      tSaveFail: 'Download failed',
       simLocal: 'Local file: image copied, paste it into the page that just opened',
       simFail: 'Local file: copy failed, drag the file into the page that just opened',
       dlTip: 'Download: PNG at any resolution, or a cleaned-up SVG.',
@@ -222,6 +224,7 @@
       tUrlCopied: 'Indirizzo copiato',
       tCopyFail: 'Copia non riuscita',
       tCopyFailWhy: 'Copia non riuscita: {1}',
+      tSaveFail: 'Scaricamento non riuscito',
       simLocal: 'File locale: immagine copiata, incollala nella pagina appena aperta',
       simFail: 'File locale: copia non riuscita, trascina il file nella pagina appena aperta',
       dlTip: 'Scarica: PNG a qualsiasi risoluzione, oppure un SVG ripulito.',
@@ -1503,8 +1506,24 @@
       if (!/\.[a-z0-9]{2,5}$/i.test(n)) n += '.' + (imageInfo.ext || 'img');
       return n;
     }
+    // A page served with `Content-Security-Policy: sandbox` and no `allow-downloads` (every file
+    // of raw.githubusercontent.com) refuses any download started from the page: the click on an
+    // <a download> turns into a navigation to the same address, that is a reload. Such a page
+    // has an opaque origin, so `self.origin` is the string 'null'. There the file goes to the
+    // manager with GM_download, which saves through the browser's downloads API when that option
+    // is on in Violentmonkey; with it off, Violentmonkey saves with its own click in the page,
+    // the sandbox stops it, and no error comes back (measured in Chromium). Local files have an
+    // opaque origin too, and keep the direct click, which works there.
+    function pageIsSandboxed() {
+      return self.origin === 'null' && /^https?:$/i.test(location.protocol);
+    }
     function saveImage() {
       const fileName = imageFileName();
+      if (pageIsSandboxed()) {
+        if (typeof GM_download !== 'function') { toast(T('tSaveFail')); return; }
+        GM_download({ url: location.href, name: fileName, onerror: function () { toast(T('tSaveFail')); } });
+        return;
+      }
       if (svgEl && originalBytes) {
         const a = makeEl('a');
         const u = URL.createObjectURL(new Blob([originalBytes], { type: 'image/svg+xml' }));
@@ -1516,8 +1535,8 @@
       }
       // The direct click is the chosen way, not a fallback: the file is already in the page,
       // and the click runs inside the user's tap on the menu entry, which is the only moment a
-      // browser accepts it on a phone (Rules.md, the file saved inside a tap). GM_download is not
-      // among the grants, and a branch calling it never ran.
+      // browser accepts it on a phone (Rules.md, the file saved inside a tap). GM_download serves
+      // only the sandboxed page, above.
       const a = makeEl('a');
       a.setAttribute('href', location.href); a.setAttribute('download', fileName);
       (document.body || document.documentElement).appendChild(a);

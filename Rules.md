@@ -161,7 +161,27 @@ memoria, il tasto diventa **`💾 Save`** e il clic parte dentro il tocco succes
 in ENF, `preparaSalvataggio` in NSFWA). Le sole altre vie ammesse: la finestra 'Salva'
 (`showSaveFilePicker`) aperta al primo clic, prima di ogni `await`, dove il browser la offre (ENF
 1.6.4); il clic diretto quando il file è già in pagina e non serve nessuna attesa (il salvataggio
-di DIV). Uno script nuovo che salva un file segue la regola, e la prova modella il blocco come
+di DIV).
+- ⚠️⚠️ **Una pagina servita con `Content-Security-Policy: sandbox` senza `allow-downloads` rifiuta
+  OGNI scaricamento avviato da lei** (card `Sabbiera`, segnalazione dell'utente del 2026-11-22 su un
+  file di `raw.githubusercontent.com`, che ha quell'intestazione). Il clic su `<a download>` verso la
+  pagina stessa diventa una navigazione, cioè un ricaricamento, e quello verso un blob non fa niente;
+  misurato in Chromium. Una pagina così ha un'origine opaca (`self.origin` vale `'null'`), e i file
+  locali pure, ma su questi il clic funziona.
+  - **Dalla 3.2.7 DIV lì scarica con `GM_download`** (scelta `Sabbiera-01`), che salva con l'API di
+    download del browser, fuori dalla pagina, solo se in Violentmonkey è attiva `Use browser download
+    API`; l'utente l'ha attiva (`Opzione-01`). Con l'opzione spenta Violentmonkey salva col suo clic
+    nella pagina, che la `sandbox` ferma, e non restituisce errori (letto nel sorgente di
+    Violentmonkey, [la funzione `download`](https://github.com/violentmonkey/violentmonkey/blob/master/src/injected/content/requests.js)): DIV non può accorgersene.
+  - **Scartata**, per ora: la scheda di salvataggio sulla pagina delle opzioni (`Sabbiera-02`), che
+    non dipende da Violentmonkey ma costa più codice e un secondo tocco. Si riprende se l'opzione non
+    basta, per esempio su un telefono dove manca.
+  - **Resta fuori** il pannello di esportazione degli SVG (`saveFile`), che salva un blob: su un SVG
+    servito da `raw.githubusercontent.com` il PNG e l'SVG ripulito non arrivano. `GM_download` non
+    aiuta, perché un blob della pagina non lo legge l'estensione.
+  - **La prova** è il caso 1b di `tests/div.cjs`, con la pagina servita come quelle di GitHub più
+    `allow-scripts`, perché il banco inietta lo script nella pagina e Violentmonkey no; il caso 1c
+    tiene il clic diretto sui file locali. Uno script nuovo che salva un file segue la regola, e la prova modella il blocco come
 `tests/enf-save.cjs` e `tests/nsfwa-save.cjs`: il clic vale solo con `window.event.isTrusted`,
 perché Chromium senza finestra scarica comunque.
 - **Dove vale oggi**: ENF dalla 1.6.6, NSFWA dalla 1.2.4, Fapopedia dalla 1.3.3 (sua scelta
